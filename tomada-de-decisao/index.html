@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Tomada de decisão: o que você faria? · ame sua mente</title>
+  <meta name="description" content="Jogo #1 do Módulo 5 do ame sua mente na escola: gire as roletas, tire uma carta-dilema e pratique a tomada de decisão.">
+  <meta name="theme-color" content="#F89903">
+  <link rel="icon" href="assets/img/logo-preto.webp">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- Tela inicial -->
+  <section id="home" class="screen">
+    <div class="home-band top"></div>
+    <div class="home-ring"></div>
+    <div class="home-inner">
+      <img class="home-logo" src="assets/img/logo-educadores.webp" alt="ame sua mente educadores" width="170" height="88">
+      <div class="home-kicker">Jogo #1 · Módulo 5</div>
+      <h1 class="home-title">Tomada de decisão: <span>o que você faria?</span></h1>
+      <p class="home-lead">Gire as roletas, tire uma carta-dilema e conte o que você faria no lugar do personagem.</p>
+      <div class="home-cta">
+        <button class="btn btn-primary" data-action="setup">
+          <span class="btn-ico"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.6 2.7-6 6-6s6 2.4 6 6"/><circle cx="17" cy="9" r="2.6"/><path d="M15.5 14.2c3 .2 5.5 2.4 5.5 5.8"/></svg></span>
+          <span><b>Começar a jogar</b><small>de 3 a 6 jogadores, com placas</small></span>
+        </button>
+      </div>
+      <button class="btn btn-continue hidden" data-action="resume" id="resumeBtn">
+        <span><b>Continuar partida</b><small id="resumeInfo"></small></span>
+      </button>
+      <button class="link-btn" data-action="rules">Como jogar</button>
+    </div>
+    <div class="home-info" aria-label="informações">
+      <div class="info-pill">Informações</div>
+      <div class="info-body">
+        <div class="info-age"><span class="plus">+</span>11<small>anos</small></div>
+        <div class="info-players">
+          <svg viewBox="0 0 48 40"><circle cx="30" cy="10" r="7"/><path d="M18 38c0-9 5-15 12-15s12 6 12 15z"/><circle cx="16" cy="14" r="6"/><path d="M4 38c0-8 5-13 12-13 3 0 5 1 7 2-4 3-6 7-6 11z"/></svg>
+          <small>3 a 6 jogadores</small>
+        </div>
+      </div>
+    </div>
+    <div class="home-hero" aria-hidden="true">
+      <img class="hero-q" src="assets/img/interrogacoes.webp" alt="" width="420" height="366">
+      <img class="hero-tuto" src="assets/tuto/tuto-joinha.webp" alt="" width="534" height="523">
+      <div class="hero-wheel" id="heroWheel"></div>
+    </div>
+    <div class="home-band bottom">
+      <span>Jogo #1 · Módulo 5</span>
+    </div>
+  </section>
+
+  <!-- Jogo -->
+  <section id="game" class="hidden">
+    <header id="topbar">
+      <button class="brand" data-action="home" aria-label="Voltar ao início">
+        <img src="assets/img/logo-educadores.webp" alt="ame sua mente educadores" width="112" height="58">
+      </button>
+      <div class="topbar-title" id="topbarTitle"></div>
+      <div class="topbar-actions">
+        <button class="icon-btn" data-action="rules" aria-label="Regras">
+          <svg viewBox="0 0 24 24"><path d="M5 4.5A2.5 2.5 0 0 1 7.5 2H19v16H7.5A2.5 2.5 0 0 0 5 20.5v-16Z"/><path d="M5 20.5A2.5 2.5 0 0 0 7.5 23H19v-5"/><path d="M9 7h6M9 11h4"/></svg>
+        </button>
+        <button class="icon-btn" data-action="sound" aria-label="Som" id="soundBtn">
+          <svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="wave" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/><path class="mute" d="M16 9l6 6M22 9l-6 6"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <main class="board">
+      <div class="table">
+        <div class="wheels" id="wheels"></div>
+        <div class="table-actions">
+          <button class="btn btn-primary btn-pill" id="spinBtn" data-action="spin">
+            <svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v4.5h-4.5"/></svg>
+            Girar as roletas
+          </button>
+          <div class="set-chip" id="setChip"></div>
+        </div>
+      </div>
+
+      <div class="deck-area">
+        <div class="deck" id="deck" role="button" tabindex="0" aria-label="Tirar uma carta-dilema">
+          <div class="deck-card back c3"></div>
+          <div class="deck-card back c2"></div>
+          <div class="deck-card back c1"><span class="sr">Carta-dilema</span><em id="deckCount"></em></div>
+        </div>
+        <p class="deck-hint" id="deckHint"></p>
+      </div>
+
+      <aside class="score" id="score" aria-label="Placar"></aside>
+    </main>
+
+    <div class="step" id="step" role="status" aria-live="polite"></div>
+  </section>
+
+  <!-- Configuração -->
+  <div id="setup" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="setupTitle">
+    <div class="sheet">
+      <button class="sheet-close" data-action="close" aria-label="Fechar">×</button>
+      <h2 id="setupTitle" class="sheet-title">Nova partida</h2>
+      <p class="sheet-sub">Passe o aparelho de mão em mão. Quem responde o dilema recebe os pontos das placas dos outros jogadores.</p>
+      <div class="field">
+        <span>Jogadores</span>
+        <div class="seg" id="playersSeg"></div>
+      </div>
+      <div class="field">
+        <span>Nomes</span>
+        <div class="names-list" id="namesList"></div>
+      </div>
+      <div class="field">
+        <span>Rodadas (vezes que cada jogador responde)</span>
+        <div class="seg" id="roundsSeg"></div>
+      </div>
+      <div class="field">
+        <span>Roletas</span>
+        <div class="seg" id="setSeg"></div>
+      </div>
+      <button class="btn btn-primary wide" data-action="start">Começar partida</button>
+    </div>
+  </div>
+
+  <!-- Carta-dilema aberta -->
+  <div id="spot" class="modal spot hidden" role="dialog" aria-modal="true" aria-labelledby="spotStory">
+    <div class="spot-inner">
+      <div class="spot-who" id="spotWho"></div>
+      <!-- carta 3D: verso (capa) e frente no estilo da carta-dilema impressa -->
+      <div class="dcard" id="dcard">
+        <article class="dface front">
+          <img class="dcard-logo" src="assets/img/logo-preto.webp" alt="ame sua mente">
+          <p class="dcard-story" id="spotStory"></p>
+          <img class="dcard-tuto" id="dcardTuto" alt="">
+        </article>
+        <div class="dface back"></div>
+      </div>
+      <div class="spot-extra" id="spotExtra"></div>
+      <div class="spot-actions" id="spotActions"></div>
+    </div>
+  </div>
+
+  <!-- Avaliação com placas -->
+  <div id="vote" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="voteTitle">
+    <div class="sheet sheet-mid">
+      <h2 id="voteTitle" class="sheet-title"></h2>
+      <p class="sheet-sub" id="voteSub"></p>
+      <div class="vote-list" id="voteList"></div>
+      <div class="vote-foot" id="voteFoot"></div>
+    </div>
+  </div>
+
+  <!-- Regras -->
+  <div id="rules" class="modal hidden" role="dialog" aria-modal="true" aria-label="Regras">
+    <div class="sheet sheet-wide">
+      <button class="sheet-close" data-action="close" aria-label="Fechar">×</button>
+      <div class="rules-grid">
+        <article class="rule-card">
+          <div class="rule-head">O jogo</div>
+          <dl>
+            <dt>Faixa etária</dt><dd>A partir de 11 anos.</dd>
+            <dt>Objetivo</dt><dd>Praticar a tomada de decisão em situações diversas.</dd>
+            <dt>Número de jogadores</dt><dd>De 3 a 6 pessoas.</dd>
+            <dt>Competências da BNCC</dt><dd>Argumentar com base em fatos, dados e informações confiáveis, para formular, negociar e defender ideias, pontos de vista e decisões comuns que respeitem e promovam os direitos humanos, a consciência socioambiental e o consumo responsável em âmbito local, regional e global, com posicionamento ético em relação ao cuidado de si, dos outros e do planeta.</dd>
+          </dl>
+          <a class="help-link" href="https://www.amesuamente.org.br/precisa-de-ajuda-em-saude-mental/" target="_blank" rel="noopener">Precisa de ajuda em saúde mental?</a>
+        </article>
+        <article class="rule-card">
+          <div class="rule-head">Como jogar</div>
+          <ol>
+            <li>Na sua vez, <b>gire as três roletas</b>: personagem, lugar e sentimento.</li>
+            <li><b>Tire uma carta-dilema</b> e leia em voz alta a história formada.</li>
+            <li>Coloque-se no lugar do personagem e <b>diga o que faria</b> para resolver o dilema.</li>
+            <li>Os outros jogadores avaliam com uma placa:
+              <span class="placa-row"><i class="pl verde">2</i> concordo completamente</span>
+              <span class="placa-row"><i class="pl amarela">1</i> concordo em partes</span>
+              <span class="placa-row"><i class="pl vermelha">0</i> discordo da decisão</span>
+            </li>
+            <li>Cada jogador <b>justifica a sua placa</b>. Depois, o jogador à esquerda continua.</li>
+            <li><b>Vence quem juntar mais pontos.</b></li>
+          </ol>
+          <p class="note"><b>Bônus:</b> há dois conjuntos de roletas (clássicas e bônus). Você pode escolher um deles ou alternar a cada rodada. Cada carta também traz uma pergunta <b>para pensar</b>, que ajuda a olhar a situação por outros ângulos.</p>
+        </article>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fim de partida -->
+  <div id="end" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="endTitle">
+    <div class="sheet sheet-mid end-sheet" id="endBody"></div>
+  </div>
+
+  <!-- Confirmação -->
+  <div id="confirm" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+    <div class="sheet">
+      <h2 id="confirmTitle" class="sheet-title">Sair da partida?</h2>
+      <p class="sheet-sub">A pontuação fica salva neste aparelho. Você pode continuar depois pela tela inicial.</p>
+      <div class="row-btns">
+        <button class="btn btn-soft" data-action="close">Ficar</button>
+        <button class="btn btn-primary btn-pill" data-action="leave">Sair</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <canvas id="confetti" aria-hidden="true"></canvas>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

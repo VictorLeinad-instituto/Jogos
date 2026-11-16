@@ -1,11 +1,14 @@
-# Tomada de decisão: o que você faria?
+# Entre Caminhos: Decisões em Perspectiva
 
-Jogo #1 do Módulo 5 do ame sua mente na escola, adaptado do material impresso.
+Jogo #1 do Módulo 5 do ame sua mente na escola (antes "Tomada de decisão: o que você faria?").
 
-- De 3 a 6 jogadores, a partir de 11 anos.
-- Na sua vez, o jogador gira três roletas (personagem, lugar e sentimento), tira uma carta-dilema e diz o que faria.
-- Os outros jogadores avaliam, um por vez, com as placas verde (concordo, 2 pontos), amarela (em partes, 1 ponto) e vermelha (discordo, 0 pontos).
-- Vence quem juntar mais pontos.
+- De 3 a 6 pessoas, a partir de 11 anos, no mesmo aparelho.
+- Na sua vez, a pessoa tira uma carta-dilema (28 cartas) e lê em voz alta. Depois gira três roletas (Pessoa envolvida, Contexto e Emoção) que funcionam como lentes para ampliar a reflexão. Em seguida, responde: "Uma possibilidade seria…".
+- Quem escuta pode acrescentar alternativas e consequências. O grupo registra marcadores de raciocínio (Ação, Consequência, Apoio e limites).
+- O jogo é cooperativo: o grupo tenta reunir os marcadores (sugestão: 12). Não há pontos por concordância, placar individual nem vencedor.
+- Pode passar a vez, trocar de carta ou responder sem contar nada vivido.
+
+A versão com sala e QR code (cada pessoa no próprio celular) fica em outro repositório: `jogo-tomada-de-decisao-sala`.
 
 ## Como rodar
 
@@ -15,6 +18,11 @@ Jogo #1 do Módulo 5 do ame sua mente na escola, adaptado do material impresso.
 
 - `index.html`: telas e modais
 - `css/style.css`: estilos (tokens do design system, vertente educadores)
-- `js/data.js`: roletas, 28 cartas-dilema, perguntas "para pensar" e placas
-- `js/main.js`: lógica do jogo, roletas, animações e placar
-- `assets/`: logos, ilustrações do Tuto, placas e capa das cartas, fonte ASM Display
+- `js/data.js`: roletas, 28 cartas-dilema, marcadores e metas
+- `js/main.js`: lógica do jogo, roletas e marcadores
+- `js/intro.js`, `js/intro-data.js`: apresentação do Tuto
+- `assets/`: logos, ilustrações do Tuto e capa das cartas, fonte ASM Display
+
+## Créditos
+
+Conteúdo e ilustrações: material do Instituto ame sua mente (Tuto: André Gola).

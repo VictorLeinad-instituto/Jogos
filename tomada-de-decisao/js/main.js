@@ -1,4 +1,5 @@
-import { ROLETAS, DILEMAS, PLACAS, AVATARES } from './data.js';
+import { ROLETAS, ROLETA_CHAVES, CONJUNTOS, DILEMAS, MARCADORES, MARCADOR_CHAVES, METAS, PALAVRAS_FECHAMENTO, AVATARES } from './data.js';
+import { openIntro, stopIntro, introKey } from './intro.js';
 
 /* ==========================================================
    Utilidades
@@ -10,8 +11,10 @@ const rnd = (n) => Math.floor(Math.random() * n);
 const shuffle = (a) => { a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+const um = (s) => s.replace(/\n/g, ' ');   // rótulo de roleta em uma linha
 
-const SAVE_KEY = 'asm-decisao-v1';
+const SAVE_KEY = 'asm-decisao-v2';
 const PREFS_KEY = 'asm-decisao-prefs';
 const store = {
   get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
@@ -27,6 +30,17 @@ function toast(msg) {
   t.textContent = msg; t.classList.add('show');
   clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2400);
 }
+
+// Ponto de extensão: a versão com sala e QR code (jogo-tomada-de-decisao-sala) liga aqui os celulares,
+// sem mexer neste arquivo. Na versão normal ninguém usa estes ganchos.
+const ASM = (window.ASM = {
+  onSync: null,      // (estado, acoes) a cada mudança de etapa
+  onFim: null,       // (resultado) quando a partida termina
+  onHome: null,      // ao voltar para a tela inicial
+  onRematch: null,   // ao jogar de novo com os mesmos jogadores
+  primary: () => { renderSetup(); show('#setup'); },   // botão "Vamos jogar!" da apresentação do Tuto
+  esc, AVATARES, toast, show, hide,
+});
 
 /* ==========================================================
    Sons (WebAudio, sem arquivos)
@@ -47,7 +61,7 @@ const sfx = {
   tick: () => beep(880 + rnd(120), .03, 'square', .025),
   flip: () => { beep(420, .08, 'sine', .07); beep(640, .1, 'sine', .06, .06); },
   land: () => beep(660, .12, 'triangle', .07),
-  placa: () => beep(520, .05, 'triangle', .06),
+  marca: () => beep(520, .05, 'triangle', .06),
   chime: () => [523, 659, 784, 1046].forEach((f, i) => beep(f, .22, 'sine', .07, i * .09)),
 };
 
@@ -101,9 +115,9 @@ class Wheel {
     this.wheelEl = $('.wheel', this.el);
     this.resEl = $('.wheel-result', this.el);
   }
-  setItems(items, labelOf) {
+  setItems(items) {
     this.items = items;
-    this.wheelEl.innerHTML = wheelSvg(items.map(labelOf), { hub: '' });
+    this.wheelEl.innerHTML = wheelSvg(items, { hub: '' });
     this.rotEl = $('.wheel-rot', this.wheelEl);
     this.rotEl.style.transform = `rotate(${this.rot}deg)`;
   }
@@ -130,6 +144,7 @@ class Wheel {
     return wait(ms + 40).then(() => {
       this.wheelEl.classList.remove('spinning');
       this.wheelEl.classList.add('done');
+      $$('.seg.win', this.wheelEl).forEach((s) => s.classList.remove('win'));
       $(`.seg[data-i="${target}"]`, this.wheelEl)?.classList.add('win');
       this.result = target;
       this.resEl.textContent = display;
@@ -186,30 +201,31 @@ function cubicBezier(x1, y1, x2, y2) {
 /* ==========================================================
    Estado do jogo
    ========================================================== */
-const wheels = {
-  personagens: new Wheel('personagens', 1),
-  lugares: new Wheel('lugares', 2),
-  sentimentos: new Wheel('sentimentos', 3),
-};
-Object.values(wheels).forEach((w) => $('#wheels').append(w.el));
+const wheels = {};
+ROLETA_CHAVES.forEach((k, i) => { wheels[k] = new Wheel(k, i + 1); $('#wheels').append(wheels[k].el); });
 
 let G = null;          // partida atual
 let spinning = false;
 let timerT = null;
 
-const SETUP = { n: 4, rounds: 2, set: 'classicos' };
-
+const SETUP = { n: 4, rounds: 2, set: 'base', meta: 12 };
+ASM.SETUP = SETUP;
 const MIN_PLAYERS = 3, MAX_PLAYERS = 6;
+ASM.MIN_PLAYERS = MIN_PLAYERS; ASM.MAX_PLAYERS = MAX_PLAYERS;
 
 function newGame(opts) {
   G = {
-    players: opts.names.map((name, i) => ({ name, avatar: AVATARES[i % AVATARES.length], pts: 0 })),
+    players: opts.names.map((name, i) => ({ name, avatar: AVATARES[i % AVATARES.length], pid: opts.pids?.[i] })),
+    sala: !!opts.pids,  // partida da sala: os jogadores entraram pelo QR code (versão com sala)
     rounds: opts.rounds ?? 0,
-    set: opts.set || 'classicos',
+    set: opts.set || 'base',
+    meta: opts.meta || 12,
     turn: 0,           // índice global de vezes jogadas
     deck: shuffle(DILEMAS.map((_, i) => i)),
-    phase: 'spin',
-    res: null, card: null, votes: {}, pick: null, handoff: null,
+    total: { acao: 0, consequencia: 0, apoio: 0 },
+    metaOk: false,
+    phase: 'draw',     // draw → read → spin → answer → mark
+    res: null, card: null, marks: {}, ign: {}, rerolled: false,
   };
 }
 
@@ -217,15 +233,17 @@ const curPlayerIdx = () => G.turn % G.players.length;
 const curPlayer = () => G.players[curPlayerIdx()];
 const roundNum = () => Math.floor(G.turn / G.players.length) + 1;
 const totalTurns = () => G.rounds ? G.rounds * G.players.length : Infinity;
+const isLast = () => G.turn + 1 >= totalTurns();
+const somaTotal = () => MARCADOR_CHAVES.reduce((s, k) => s + G.total[k], 0);
 function setForTurn() {
   if (G.set !== 'alternar') return G.set;
-  return roundNum() % 2 === 1 ? 'classicos' : 'bonus';
+  return roundNum() % 2 === 1 ? 'base' : 'expansao';
 }
 
 function save() {
-  if (!G) return;
-  const { players, rounds, set, turn, deck } = G;
-  store.set(SAVE_KEY, { players, rounds, set, turn, deck, at: Date.now() });
+  if (!G || G.sala) return;   // a sala não fica guardada: ela some quando a mesa fecha
+  const { players, rounds, set, meta, turn, deck, total, metaOk } = G;
+  store.set(SAVE_KEY, { players, rounds, set, meta, turn, deck, total, metaOk, at: Date.now() });
 }
 
 /* ==========================================================
@@ -236,30 +254,35 @@ function applyWheelSet() {
   const set = setForTurn();
   if (set === shownSet) return;
   shownSet = set;
-  wheels.personagens.setItems(ROLETAS.personagens[set], (x) => x.t);
-  wheels.lugares.setItems(ROLETAS.lugares[set], (x) => x.t);
-  wheels.sentimentos.setItems(ROLETAS.sentimentos[set], (x) => cap(x.m === x.f ? x.m : `${x.m}/${x.f.slice(-1)}`));
-  $('#setChip').textContent = set === 'bonus' ? 'Roletas bônus' : 'Roletas clássicas';
+  ROLETA_CHAVES.forEach((k) => wheels[k].setItems(ROLETAS[k][set]));
+  $('#setChip').textContent = `Roletas: ${CONJUNTOS[set]}`;
 }
-const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
 function renderTopbar() {
   const r = G.rounds ? `Rodada ${roundNum()} de ${G.rounds}` : `Rodada ${roundNum()}`;
   $('#topbarTitle').innerHTML = `${r}<small>Vez de ${esc(curPlayer().name)}</small>`;
 }
 
-function renderScore(bumpIdx = -1) {
+// Trilha coletiva: o grupo reúne marcadores de raciocínio; não há placar individual nem vencedor.
+function renderScore(bump = false) {
   const ci = curPlayerIdx();
+  const soma = somaTotal();
+  const pct = Math.min(100, Math.round((soma / G.meta) * 100));
   $('#score').innerHTML = `
-    <h3>Placar</h3>
+    <h3>Trilha coletiva</h3>
+    <div class="trail">
+      <div class="trail-n${bump ? ' bump' : ''}"><b>${soma}</b><span>de ${G.meta} marcadores${G.metaOk ? ' · meta alcançada!' : ''}</span></div>
+      <div class="trail-bar" role="progressbar" aria-label="Marcadores do grupo" aria-valuemin="0" aria-valuemax="${G.meta}" aria-valuenow="${Math.min(soma, G.meta)}"><i style="width:${pct}%"></i></div>
+      <ul class="trail-kinds">${MARCADOR_CHAVES.map((k) => `<li class="${k}"><i class="mk"></i>${MARCADORES[k].nome}<b>${G.total[k]}</b></li>`).join('')}</ul>
+    </div>
+    <h3>Participantes</h3>
     <ol>${G.players.map((p, i) => `
       <li class="${i === ci ? 'turn' : ''}">
         <span class="avatar"><img src="${p.avatar}" alt=""></span>
-        <span class="pname">${esc(p.name)}<small>${i === ci ? 'Respondendo agora' : `${p.pts === 1 ? '1 ponto' : `${p.pts} pontos`}`}</small></span>
-        <span class="pts${i === bumpIdx ? ' bump' : ''}">${p.pts}</span>
+        <span class="pname">${esc(p.name)}<small>${i === ci ? 'Na vez' : 'Escutando e apoiando'}</small></span>
       </li>`).join('')}
     </ol>
-    <p class="score-note">Verde vale 2, amarela vale 1 e vermelha vale 0.</p>`;
+    <p class="score-note">Cada participação conta. Não há vencedor individual.</p>`;
   centerTurn();
 }
 
@@ -274,19 +297,19 @@ function centerTurn() {
 }
 addEventListener('resize', () => { if (G) centerTurn(); });
 
-const PHASES = ['spin', 'draw', 'answer', 'vote'];
+const DOT = { draw: 0, read: 0, spin: 1, answer: 2, mark: 3 };
 function renderStep() {
   const st = $('#step');
-  const idx = PHASES.indexOf(G.phase === 'reveal' ? 'vote' : G.phase);
-  const dots = PHASES.map((_, i) => `<i class="${i < idx ? 'done' : i === idx ? 'on' : ''}"></i>`).join('');
+  const idx = DOT[G.phase];
+  const dots = [0, 1, 2, 3].map((i) => `<i class="${i < idx ? 'done' : i === idx ? 'on' : ''}"></i>`).join('');
   const who = `<span class="avatar"><img src="${curPlayer().avatar}" alt=""></span>`;
   const name = esc(curPlayer().name);
   const txt = {
-    spin: ['Gire as três roletas', 'Personagem, lugar e sentimento vão formar a história.', 'Girar', 'spin'],
-    draw: ['Tire uma carta-dilema', 'Clique no monte para descobrir a situação.', 'Tirar carta', 'draw'],
-    answer: ['Hora de responder', 'Leia a carta em voz alta e diga o que faria.', 'Ver carta', 'open-card'],
-    vote: ['Os outros jogadores avaliam', 'Cada um escolhe uma placa: verde, amarela ou vermelha.', 'Avaliar', 'open-vote'],
-    reveal: ['Placas reveladas', 'Cada jogador justifica a sua placa.', 'Ver placas', 'open-vote'],
+    draw: ['Tire uma carta-dilema', 'Clique no monte para descobrir a situação. Primeiro a carta; depois, as roletas.', 'Tirar carta', 'draw'],
+    read: ['Leia a carta em voz alta', 'O dilema já faz sentido sozinho. Você pode passar a vez ou trocar de carta.', 'Ver carta', 'open-card'],
+    spin: ['Gire as roletas', 'Elas funcionam como lentes para ampliar a reflexão, não como partes da história.', 'Girar', 'spin'],
+    answer: ['Hora de responder', 'Diga “Uma possibilidade seria…”. Dá para pedir tempo, pedir apoio ou passar.', 'Ver carta', 'open-card'],
+    mark: ['Marcadores de raciocínio', 'O grupo registra o que apareceu na conversa.', 'Ver marcadores', 'open-mark'],
   }[G.phase];
   st.innerHTML = `${who}
     <div class="step-txt"><b>${name}: ${txt[0]}</b><span>${txt[1]}</span><div class="step-dots">${dots}</div></div>
@@ -295,11 +318,13 @@ function renderStep() {
   const spinBtn = $('#spinBtn');
   spinBtn.disabled = G.phase !== 'spin' || spinning;
   spinBtn.classList.toggle('ready', G.phase === 'spin' && !spinning);
+  $('#rereadBtn').classList.toggle('hidden', G.phase !== 'spin');
   const deck = $('#deck');
   deck.classList.toggle('ready', G.phase === 'draw');
   deck.setAttribute('aria-disabled', G.phase !== 'draw');
   $('#deckCount').textContent = `${G.deck.length} no monte`;
-  $('#deckHint').textContent = G.phase === 'draw' ? 'Clique no monte para tirar uma carta.' : G.phase === 'spin' ? 'Primeiro, gire as roletas.' : '';
+  $('#deckHint').textContent = G.phase === 'draw' ? 'Clique no monte para tirar uma carta.' : G.phase === 'spin' ? 'Agora, as roletas.' : '';
+  sync();
 }
 
 function renderAll() {
@@ -308,29 +333,85 @@ function renderAll() {
 }
 
 /* ==========================================================
+   Ações (a mesa e, na versão com sala, os celulares chamam as mesmas)
+   ========================================================== */
+const A = {
+  draw: () => doDraw(),
+  toSpin: () => toSpin(),
+  swap: () => swapCard(),
+  pass: () => passTurn(),
+  spin: () => doSpin(),
+  toMark: () => toMark(),
+  'm-acao': () => toggleMark('acao'),
+  'm-consequencia': () => toggleMark('consequencia'),
+  'm-apoio': () => toggleMark('apoio'),
+  next: () => nextTurn(),
+};
+
+// Botões da etapa atual (a versão com sala mostra estes no celular de quem está na vez).
+function acoes() {
+  if (!G) return [];
+  switch (G.phase) {
+    case 'draw': return [{ k: 'draw', rotulo: 'Tirar uma carta', principal: true }];
+    case 'read': return [
+      { k: 'toSpin', rotulo: 'Girar as roletas', principal: true },
+      { k: 'swap', rotulo: 'Trocar de carta' },
+      { k: 'pass', rotulo: 'Passar a vez' },
+    ];
+    case 'spin': return spinning ? [] : [{ k: 'spin', rotulo: 'Girar as roletas', principal: true }];
+    case 'answer': return spinning ? [] : [{ k: 'toMark', rotulo: 'Registrar marcadores', principal: true }];
+    case 'mark': return [
+      ...MARCADOR_CHAVES.map((k) => ({ k: `m-${k}`, rotulo: MARCADORES[k].nome, marca: true, on: !!G.marks[k] })),
+      { k: 'next', rotulo: isLast() ? 'Ver resultado' : 'Próxima pessoa', principal: true },
+    ];
+    default: return [];
+  }
+}
+
+const lentes = () => ROLETA_CHAVES.map((k) => ({
+  k, titulo: ROLETAS[k].titulo, valor: um(ROLETAS[k][G.res.set][G.res[k]]), pergunta: ROLETAS[k].lente, ign: !!G.ign[k],
+}));
+
+// Retrato da partida para os celulares (versão com sala). Não leva nada pessoal além dos nomes escolhidos.
+function snapshot() {
+  const cartaVisivel = G.card != null && ['read', 'answer', 'mark'].includes(G.phase);
+  const c = cartaVisivel ? DILEMAS[G.card] : null;
+  return {
+    fase: G.phase,
+    girando: spinning,
+    turno: G.turn,
+    rodada: roundNum(),
+    rodadas: G.rounds,
+    meta: G.meta,
+    ultimo: isLast(),
+    ativo: curPlayer().pid,
+    jogadores: G.players.map((p, i) => ({ pid: p.pid, nome: p.name, av: i })),
+    total: G.total,
+    carta: c ? { d: c.d, p: c.p } : null,
+    lentes: G.res && !spinning && ['answer', 'mark'].includes(G.phase) ? lentes() : null,
+    marcas: G.phase === 'mark' ? G.marks : null,
+  };
+}
+function sync() {
+  if (!G || !ASM.onSync) return;
+  ASM.onSync(snapshot(), acoes());
+}
+
+/** Executa um botão pela chave (só vale se estiver na lista da etapa atual). */
+function run(k) {
+  if (!G || !acoes().some((a) => a.k === k)) return false;
+  A[k]?.();
+  return true;
+}
+
+/* ==========================================================
    Fluxo de uma vez
    ========================================================== */
 function startTurn() {
-  G.phase = 'spin'; G.res = null; G.card = null; G.votes = {}; G.pick = null; G.handoff = null;
+  marking = false;
+  G.phase = 'draw'; G.res = null; G.card = null; G.marks = {}; G.ign = {}; G.rerolled = false;
   Object.values(wheels).forEach((w) => w.clear());
   renderAll();
-}
-
-async function doSpin() {
-  if (!G || G.phase !== 'spin' || spinning) return;
-  spinning = true; renderStep();
-  const set = setForTurn();
-  const res = { set, p: rnd(6), l: rnd(6), s: rnd(6) };
-  const g = ROLETAS.personagens[set][res.p].g;
-  const base = reduced() ? 300 : 2600;
-  await Promise.all([
-    wheels.personagens.spin(res.p, base, ROLETAS.personagens[set][res.p].t),
-    wheels.lugares.spin(res.l, base + (reduced() ? 0 : 500), ROLETAS.lugares[set][res.l].t.replace('\n', ' ')),
-    wheels.sentimentos.spin(res.s, base + (reduced() ? 0 : 1000), cap(ROLETAS.sentimentos[set][res.s][g])),
-  ]);
-  G.res = res; spinning = false;
-  G.phase = 'draw';
-  renderStep();
 }
 
 async function doDraw() {
@@ -338,20 +419,76 @@ async function doDraw() {
   if (!G.deck.length) { G.deck = shuffle(DILEMAS.map((_, i) => i)); toast('O monte foi embaralhado de novo.'); }
   G.card = G.deck.shift();
   $('#deck').classList.remove('ready');
-  G.phase = 'answer';
+  G.phase = 'read';
   renderStep();
   sfx.flip();
   await openCard({ fly: true });
 }
 
-function storyHtml() {
-  const { set, p, l, s } = G.res;
-  const P = ROLETAS.personagens[set][p], L = ROLETAS.lugares[set][l], S = ROLETAS.sentimentos[set][s];
-  const art = P.g === 'f' ? 'Uma' : 'Um';
-  const dil = DILEMAS[G.card].d.replace(/\{o\}/g, P.g === 'f' ? 'a' : 'o');
-  return `${art} <mark class="p">${P.t.toLowerCase()}</mark>, <mark class="l">${L.em}</mark>, estava <mark class="s">${S[P.g]}</mark> ${esc(dil)} O que você faria se fosse essa pessoa?`;
+// Trocar a carta: a carta atual volta para o fim do monte e sai outra.
+async function swapCard() {
+  if (!G || G.phase !== 'read') return;
+  G.deck.push(G.card);
+  G.card = G.deck.shift();
+  sfx.flip();
+  renderStep();
+  const dcard = $('#dcard');
+  await openCard();
+  if (!reduced()) dcard.animate([{ opacity: 0, transform: 'translateY(18px) rotateY(40deg)' }, { opacity: 1, transform: 'none' }], { duration: 420, easing: 'cubic-bezier(.22,.8,.24,1)' });
 }
 
+// Passar a vez: a carta volta para o fim do monte e ninguém é marcado.
+function passTurn() {
+  if (!G || G.phase !== 'read') return;
+  G.deck.push(G.card);
+  hide('#spot');
+  G.marks = {};
+  advance();
+}
+
+function toSpin() {
+  if (!G || G.phase !== 'read') return;
+  stopTimer();
+  hide('#spot');
+  G.phase = 'spin';
+  renderStep();
+}
+
+async function doSpin() {
+  if (!G || G.phase !== 'spin' || spinning) return;
+  spinning = true; renderStep();
+  const set = setForTurn();
+  const res = { set, pessoa: rnd(6), contexto: rnd(6), emocao: rnd(6) };
+  const base = reduced() ? 300 : 2600;
+  await Promise.all(ROLETA_CHAVES.map((k, i) =>
+    wheels[k].spin(res[k], base + (reduced() ? 0 : i * 500), um(ROLETAS[k][set][res[k]]))));
+  G.res = res; spinning = false;
+  G.ign = {}; G.rerolled = false;
+  G.phase = 'answer';
+  renderStep();
+  await wait(reduced() ? 0 : 450);
+  if (G && G.phase === 'answer') await openCard();
+}
+
+// Sortear de novo UMA roleta (uma vez por vez de jogo), caso o resultado não combine ou incomode.
+async function reroll(k) {
+  if (!G || G.phase !== 'answer' || G.rerolled || spinning) return;
+  G.rerolled = true; G.ign[k] = false;
+  const set = G.res.set;
+  let n; do { n = rnd(6); } while (n === G.res[k]);
+  spinning = true; renderLenses(); renderStep();
+  await wheels[k].spin(n, reduced() ? 300 : 1100, um(ROLETAS[k][set][n]));
+  G.res[k] = n; spinning = false;
+  renderLenses(); renderStep();
+}
+
+function toggleIgnore(k) {
+  if (!G || G.phase !== 'answer') return;
+  G.ign[k] = !G.ign[k];
+  renderLenses(); sync();
+}
+
+/* ---------- carta aberta ---------- */
 // Como no "eu não...": a carta sai do monte, vira no ar e para grande à frente da mesa.
 function flyFromDeck(dcard) {
   const deck = $('#deck');
@@ -370,7 +507,7 @@ function flyFromDeck(dcard) {
   return anim.finished.catch(() => {}).then(() => deck.classList.remove('drawing'));
 }
 
-// A carta desce para a mesa antes da avaliação.
+// A carta desce para a mesa antes dos marcadores.
 function cardAway() {
   const dcard = $('#dcard');
   if (reduced() || $('#spot').classList.contains('hidden')) return Promise.resolve();
@@ -380,37 +517,72 @@ function cardAway() {
   ], { duration: 420, easing: 'cubic-bezier(.5,0,.75,0)' }).finished.catch(() => {});
 }
 
+function lensesHtml() {
+  const lista = lentes();
+  const bloqueado = G.rerolled || spinning;
+  return `<div class="lenses" aria-label="Lentes de reflexão">
+    <div class="lenses-cab"><b>Roletas como lentes</b><span>Escolha uma ou mais perguntas que ajudem. Pode ignorar o que não combinar.</span></div>
+    ${lista.map((l) => `
+      <div class="lens ${l.k}${l.ign ? ' ign' : ''}">
+        <div class="lens-txt"><small>${l.titulo}</small><b>${esc(l.valor)}</b><p>${esc(l.pergunta)}</p></div>
+        <div class="lens-btns">
+          <button type="button" data-action="lens-ign" data-k="${l.k}" aria-pressed="${l.ign}">${l.ign ? 'Usar' : 'Ignorar'}</button>
+          <button type="button" data-action="lens-reroll" data-k="${l.k}" ${bloqueado ? 'disabled' : ''}>Sortear outro</button>
+        </div>
+      </div>`).join('')}
+    <p class="lenses-nota">${G.rerolled ? 'Você já sorteou outro resultado nesta vez.' : 'Dá para sortear outro resultado de uma única roleta nesta vez.'}</p>
+  </div>`;
+}
+function renderLenses() {
+  const box = $('#lensesBox');
+  if (box) box.innerHTML = lensesHtml();
+}
+
 function openCard({ fly = false } = {}) {
   stopTimer();
   const story = $('#spotStory');
-  story.innerHTML = storyHtml();
-  const len = story.textContent.length;
-  story.classList.toggle('l2', len > 165 && len <= 205);
-  story.classList.toggle('l3', len > 205);
+  const d = DILEMAS[G.card];
+  story.textContent = d.d;
+  const len = d.d.length;
+  story.classList.toggle('l2', len > 150 && len <= 190);
+  story.classList.toggle('l3', len > 190);
   const dcard = $('#dcard');
   const extra = $('#spotExtra'), actions = $('#spotActions');
-  const think = DILEMAS[G.card].p;
+  const answering = G.phase === 'answer';
 
   const p = curPlayer();
-  $('#spotWho').innerHTML = `<span class="avatar"><img src="${p.avatar}" alt=""></span>Vez de ${esc(p.name)}: leia em voz alta`;
-  extra.innerHTML = `<button class="think locked" data-action="reveal-think"><b>Para pensar</b><span>Mostrar uma pergunta de apoio</span></button>`;
-  actions.innerHTML = `
-    <span class="timer hidden" id="timer">Tempo para pensar <b id="timerN">60</b></span>
-    <button class="btn btn-soft btn-pill" data-action="timer">Cronômetro de 1 min</button>
-    <button class="btn btn-primary btn-pill" data-action="answered">Já respondi, avaliar</button>`;
-  extra.dataset.think = think;
+  $('#spotWho').innerHTML = `<span class="avatar"><img src="${p.avatar}" alt=""></span>${answering ? `${esc(p.name)} responde` : `Vez de ${esc(p.name)}: leia em voz alta`}`;
+  const think = `<button class="think locked" data-action="reveal-think" data-think="${esc(d.p)}"><b>Para pensar</b><span>Mostrar uma pergunta de apoio</span></button>`;
+  if (answering) {
+    extra.innerHTML = `
+      <p class="prompt">${esc(p.name)} responde: <b>“Uma possibilidade seria…”</b>. Quem escuta pode acrescentar: <b>“Outra alternativa poderia ser…”</b> ou <b>“Uma consequência possível seria…”</b>. Ninguém precisa aceitar as sugestões.</p>
+      <div id="lensesBox">${lensesHtml()}</div>
+      ${think}`;
+    actions.innerHTML = `
+      <span class="timer hidden" id="timer">Tempo para pensar <b id="timerN">60</b></span>
+      <button class="btn btn-soft btn-pill" data-action="timer">Cronômetro de 1 min</button>
+      <button class="btn btn-primary btn-pill" data-action="to-mark">Registrar marcadores</button>`;
+  } else {
+    extra.innerHTML = `
+      <p class="prompt">O dilema já faz sentido sozinho: as roletas virão depois, como lentes para pensar. Você pode <b>passar a vez</b>, <b>trocar de carta</b> ou responder sem contar nada vivido por você.</p>
+      ${think}`;
+    actions.innerHTML = `
+      <button class="btn btn-outline btn-pill" data-action="pass">Passar a vez</button>
+      <button class="btn btn-soft btn-pill" data-action="swap">Trocar de carta</button>
+      <button class="btn btn-primary btn-pill" data-action="to-spin">Girar as roletas</button>`;
+  }
   const spot = $('#spot');
   spot.classList.toggle('landing', fly && !reduced());
+  spot.classList.toggle('compact', answering);
   show('#spot');
   if (fly && !reduced()) return flyFromDeck(dcard);
   return Promise.resolve();
 }
 
 function revealThink(btn) {
-  const t = $('#spotExtra').dataset.think;
   const div = document.createElement('div');
   div.className = 'think';
-  div.innerHTML = `<b>Para pensar</b>${esc(t)}`;
+  div.innerHTML = `<b>Para pensar</b>${esc(btn.dataset.think)}`;
   btn.replaceWith(div);
 }
 
@@ -422,147 +594,101 @@ function startTimer() {
   timerT = setInterval(() => {
     n--; const nEl = $('#timerN'); if (nEl) nEl.textContent = n;
     if (n <= 5 && n > 0) sfx.tick();
-    if (n <= 0) { stopTimer(); sfx.chime(); if (el) el.innerHTML = 'Tempo esgotado. Hora de responder!'; }
+    if (n <= 0) { stopTimer(); sfx.chime(); if (el) el.innerHTML = 'Tempo esgotado. Quem precisar de mais tempo pode pedir.'; }
   }, 1000);
 }
 function stopTimer() { clearInterval(timerT); timerT = null; }
 
-/* ---------- avaliação ---------- */
-// Placa no estilo das cartas impressas: cor, logo, nome, rótulo e Tuto.
-function placaCard(k, { tag = 'div', small = false, attrs = '' } = {}) {
-  const v = PLACAS[k];
-  return `<${tag} class="pcard ${k}${small ? ' small' : ''}" ${attrs}>
-    <img class="pcard-logo" src="assets/img/logo-preto.webp" alt="">
-    <span class="pcard-nome">${v.nome}</span>
-    <span class="pcard-lbl">${v.label}</span>
-    <img class="pcard-tuto" src="${v.img}" alt="">
-  </${tag}>`;
+/* ---------- marcadores de raciocínio ---------- */
+let marking = false;
+function toMark() {
+  if (!G || G.phase !== 'answer' || spinning || marking) return;
+  marking = true;
+  stopTimer();
+  cardAway().then(() => { hide('#spot'); openMark(); });
 }
 
-// Fila de avaliadores: todos menos quem respondeu, a partir do jogador à esquerda.
-const voters = () => {
-  const ci = curPlayerIdx(), n = G.players.length;
-  return Array.from({ length: n - 1 }, (_, k) => (ci + 1 + k) % n);
-};
-
-function openVote() {
-  G.phase = G.phase === 'reveal' ? 'reveal' : 'vote';
+function openMark() {
+  marking = false;
+  G.phase = 'mark';
   renderStep();
-  if (G.phase === 'reveal') { renderReveal(); show('#vote'); return; }
-  const q = voters().find((i) => !G.votes[i]);
-  if (q === undefined) return doReveal();
-  G.handoff = G.handoff ?? true;
-  renderVoter(q);
+  renderMark();
   show('#vote');
 }
 
-function renderVoter(qi) {
-  const list = voters();
-  const pos = list.indexOf(qi) + 1;
-  const q = G.players[qi], p = curPlayer();
-  const dots = list.map((i) => `<i class="${G.votes[i] ? 'done' : i === qi ? 'on' : ''}"></i>`).join('');
-  if (G.handoff) {
-    // tela de passagem: esconde a escolha anterior até o próximo jogador pegar o aparelho
-    $('#voteTitle').innerHTML = '';
-    $('#voteSub').textContent = '';
-    $('#voteList').innerHTML = `
-      <div class="handoff">
-        <span class="avatar"><img src="${q.avatar}" alt=""></span>
-        <small>Avaliação ${pos} de ${list.length}</small>
-        <h2 id="voteTitleH" class="sheet-title">Passe o aparelho para ${esc(q.name)}</h2>
-        <p class="sheet-sub">${esc(q.name)} vai avaliar a decisão de ${esc(p.name)} sem que os outros vejam a placa.</p>
-        <div class="vote-dots">${dots}</div>
-      </div>`;
-    $('#voteFoot').innerHTML = `<span></span><button class="btn btn-primary btn-pill" data-action="voter-ready" data-i="${qi}">Sou ${esc(q.name)}, avaliar</button>`;
-    return;
-  }
-  $('#voteTitle').innerHTML = `<span class="vote-who"><span class="avatar"><img src="${q.avatar}" alt=""></span>${esc(q.name)}, qual é a sua placa?</span>`;
-  $('#voteSub').textContent = `Você concorda com a decisão de ${p.name}?`;
-  $('#voteList').innerHTML = `
-    <div class="pcards" role="radiogroup" aria-label="Placa de ${esc(q.name)}">
-      ${Object.keys(PLACAS).map((k) => placaCard(k, { tag: 'button', attrs: `role="radio" aria-checked="${G.pick === k}" data-placa="${k}" aria-label="${PLACAS[k].nome}: ${PLACAS[k].desc}"` })).join('')}
-    </div>
-    <div class="vote-dots">${dots}</div>`;
-  $$('#voteList .pcard').forEach((b) => b.classList.toggle('on', b.dataset.placa === G.pick));
-  $('#voteList .pcards').classList.toggle('picked', !!G.pick);
-  const last = pos === list.length;
-  $('#voteFoot').innerHTML = `<small class="vote-count">Avaliação ${pos} de ${list.length}</small>
-    <button class="btn btn-primary btn-pill" data-action="confirm-vote" data-i="${qi}" ${G.pick ? '' : 'disabled'}>${last ? 'Confirmar e revelar' : 'Confirmar'}</button>`;
-}
-
-function confirmVote(qi) {
-  if (!G.pick) return;
-  G.votes[qi] = G.pick; G.pick = null;
-  const next = voters().find((i) => !G.votes[i]);
-  if (next === undefined) return doReveal();
-  G.handoff = true;
-  renderVoter(next);
-}
-
-function doReveal() {
-  const need = G.players.length - 1;
-  if (Object.keys(G.votes).length < need) return;
-  const gained = Object.values(G.votes).reduce((s, k) => s + PLACAS[k].pts, 0);
-  curPlayer().pts += gained;
-  G.gained = gained;
-  G.phase = 'reveal';
-  sfx.chime();
-  renderReveal();
-  renderScore(curPlayerIdx());
-  renderStep();
-}
-
-function renderReveal() {
+function renderMark() {
   const p = curPlayer();
-  const isLast = G.turn + 1 >= totalTurns();
-  $('#voteTitle').textContent = `Placas para ${p.name}`;
-  $('#voteSub').textContent = '';
-  $('#voteList').innerHTML = `
-    <div class="reveal">${voters().map((i, k) => `
-      <div class="rv" style="--d:${(k * .15).toFixed(2)}s">
-        <span class="rv-who"><span class="avatar"><img src="${G.players[i].avatar}" alt=""></span>${esc(G.players[i].name)}</span>
-        ${placaCard(G.votes[i], { small: true })}
-      </div>`).join('')}
-    </div>
-    <div class="total"><b>+${G.gained}</b><span>${G.gained === 1 ? 'ponto' : 'pontos'} para ${esc(p.name)}<br>Total: ${p.pts}</span></div>
-    <div class="justify"><b>Agora, cada jogador justifica a sua placa.</b> Não existe resposta certa: o que vale é explicar o porquê.</div>`;
+  const n = MARCADOR_CHAVES.filter((k) => G.marks[k]).length;
+  $('#voteTitle').textContent = 'Marcadores de raciocínio';
+  $('#voteSub').textContent = `O que apareceu na resposta de ${p.name} e na conversa? Os marcadores registram o raciocínio. Não medem o valor da pessoa nem existe resposta certa, e a pontuação não depende da concordância do grupo.`;
+  $('#voteList').innerHTML = `<div class="marcas" role="group" aria-label="Marcadores">
+    ${MARCADOR_CHAVES.map((k) => `
+      <button type="button" class="marca ${k}${G.marks[k] ? ' on' : ''}" data-marca="${k}" aria-pressed="${!!G.marks[k]}">
+        <span class="marca-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+        <span class="marca-txt"><b>${MARCADORES[k].nome}</b><span>${MARCADORES[k].quando}</span><small>${MARCADORES[k].reconhece}</small></span>
+      </button>`).join('')}
+  </div>
+  <p class="marcas-nota">Se nenhum marcador for registrado, tudo bem: a conversa continua válida.</p>`;
   $('#voteFoot').innerHTML = `
-    <button class="btn btn-outline btn-pill" data-action="finish">Encerrar partida</button>
-    <button class="btn btn-primary btn-pill" data-action="next">${isLast ? 'Ver resultado' : `Próximo: ${esc(G.players[(G.turn + 1) % G.players.length].name)}`}</button>`;
+    <small class="vote-count">${n} de 3 nesta vez</small>
+    <button class="btn btn-primary btn-pill" data-action="next">${isLast() ? 'Ver resultado' : `Próxima pessoa: ${esc(G.players[(G.turn + 1) % G.players.length].name)}`}</button>`;
+}
+
+function toggleMark(k) {
+  if (!G || G.phase !== 'mark') return;
+  G.marks[k] = !G.marks[k];
+  sfx.marca();
+  renderMark(); sync();
+}
+
+function commitMarks() {
+  MARCADOR_CHAVES.forEach((k) => { if (G.marks[k]) G.total[k]++; });
+  G.marks = {};
 }
 
 function nextTurn() {
+  if (!G || G.phase !== 'mark') return;
+  const antes = somaTotal();
+  commitMarks();
+  const depois = somaTotal();
   hideAll();
-  if (G.turn + 1 >= totalTurns()) { G.turn++; save(); return finish(); }
+  if (!G.metaOk && depois >= G.meta) { G.metaOk = true; sfx.chime(); toast('Meta do grupo alcançada! Cada participação contou.'); }
+  advance(depois > antes);
+}
+
+// Passa para a pessoa seguinte (ou termina quando as voltas combinadas acabam).
+function advance(bump = false) {
+  hideAll();
+  if (isLast()) { G.turn++; save(); return finish(); }
   G.turn++;
   save();
   startTurn();
+  if (bump) renderScore(true);
   toast(`Vez de ${curPlayer().name}`);
 }
 
 /* ---------- fim ---------- */
 function finish() {
   hideAll();
-  const ranked = G.players.map((p, i) => ({ ...p, i })).sort((a, b) => b.pts - a.pts);
-  const top = ranked[0].pts;
-  const winners = ranked.filter((p) => p.pts === top);
+  const soma = somaTotal();
+  const ok = soma >= G.meta;
   $('#endBody').innerHTML = `
     <img class="end-tuto" src="assets/tuto/tuto-coracao.webp" alt="">
-    <h2 id="endTitle" class="sheet-title">${winners.length > 1 ? 'Empate no topo!' : `${esc(winners[0].name)} venceu!`}</h2>
-    <p class="sheet-sub">${winners.length > 1 ? `${winners.map((w) => esc(w.name)).join(' e ')} juntaram ${top} pontos.` : `Foram ${top} pontos em decisões bem conversadas.`} O mais importante é ouvir os diferentes pontos de vista.</p>
-    <ol class="podium">${ranked.map((p, k) => `
-      <li class="${p.pts === top ? 'win' : ''}">
-        <span class="pos">${k + 1}</span>
-        <span class="avatar"><img src="${p.avatar}" alt=""></span>
-        <span class="pname">${esc(p.name)}</span>
-        <span class="pts">${p.pts}</span>
-      </li>`).join('')}
-    </ol>
+    <h2 id="endTitle" class="sheet-title">${ok ? 'O grupo completou a trilha!' : 'Fim da trilha coletiva'}</h2>
+    <p class="sheet-sub">O grupo reuniu <b>${soma}</b> de ${G.meta} marcadores de raciocínio. Cada participação conta; não há vencedor individual.${ok ? '' : ' Se o grupo não atingiu o número, a atividade continua válida: o que importa é o que foi pensado e conversado.'}</p>
+    <ul class="trail-kinds big">${MARCADOR_CHAVES.map((k) => `<li class="${k}"><i class="mk"></i>${MARCADORES[k].nome}<b>${G.total[k]}</b></li>`).join('')}</ul>
+    <div class="closing">
+      <b>Para fechar</b>
+      <p>Cada pessoa pode escolher uma palavra ou ideia da conversa. A partilha é opcional.</p>
+      <div class="words">${PALAVRAS_FECHAMENTO.map((w) => `<span>${w}</span>`).join('')}<span class="outra">Ou outra</span></div>
+      <p>Decisões dependem do contexto, e buscar apoio pode fazer parte de uma escolha cuidadosa.</p>
+    </div>
     <div class="row-btns">
       <button class="btn btn-soft" data-action="go-home">Início</button>
       <button class="btn btn-primary btn-pill" data-action="rematch">Jogar de novo</button>
     </div>`;
   store.del(SAVE_KEY);
+  ASM.onFim?.({ soma, meta: G.meta, total: { ...G.total }, ok });
   show('#end');
   confetti();
 }
@@ -572,8 +698,9 @@ function finish() {
    ========================================================== */
 function renderSetup() {
   $('#playersSeg').innerHTML = Array.from({ length: MAX_PLAYERS - MIN_PLAYERS + 1 }, (_, i) => MIN_PLAYERS + i).map((n) => `<button data-n="${n}" class="${n === SETUP.n ? 'on' : ''}">${n}</button>`).join('');
-  $('#roundsSeg').innerHTML = [[1, '1'], [2, '2'], [3, '3'], [0, 'Livre']].map(([v, l]) => `<button data-r="${v}" class="${v === SETUP.rounds ? 'on' : ''}">${l}</button>`).join('');
-  $('#setSeg').innerHTML = [['classicos', 'Clássicas'], ['bonus', 'Bônus'], ['alternar', 'Alternar']].map(([v, l]) => `<button data-s="${v}" class="${v === SETUP.set ? 'on' : ''}">${l}</button>`).join('');
+  $('#roundsSeg').innerHTML = roundsHtml();
+  $('#setSeg').innerHTML = setHtml();
+  $('#metaSeg').innerHTML = metaHtml();
   const list = $('#namesList');
   const old = $$('input', list).map((i) => i.value);
   list.innerHTML = Array.from({ length: SETUP.n }, (_, i) => {
@@ -582,13 +709,17 @@ function renderSetup() {
       <input maxlength="14" autocomplete="off" placeholder="Jogador ${i + 1}" value="${esc(v)}" aria-label="Nome do jogador ${i + 1}"></label>`;
   }).join('');
 }
+const roundsHtml = () => [[1, '1'], [2, '2'], [3, '3'], [0, 'Livre']].map(([v, l]) => `<button data-r="${v}" class="${v === SETUP.rounds ? 'on' : ''}">${l}</button>`).join('');
+const setHtml = () => [['base', 'Base'], ['expansao', 'Expansão'], ['alternar', 'Alternar']].map(([v, l]) => `<button data-s="${v}" class="${v === SETUP.set ? 'on' : ''}">${l}</button>`).join('');
+const metaHtml = () => METAS.map((v) => `<button data-m="${v}" class="${v === SETUP.meta ? 'on' : ''}">${v}</button>`).join('');
+ASM.roundsHtml = roundsHtml; ASM.setHtml = setHtml; ASM.metaHtml = metaHtml;
 
 /* ==========================================================
    Telas e modais
    ========================================================== */
 function show(sel) { $(sel).classList.remove('hidden'); const f = $(`${sel} [data-action]:not(.sheet-close)`); f?.focus({ preventScroll: true }); }
-function hide(sel) { $(sel).classList.add('hidden'); }
-function hideAll() { $$('.modal').forEach((m) => m.classList.add('hidden')); stopTimer(); }
+function hide(sel) { $(sel).classList.add('hidden'); if (sel === '#intro') stopIntro(); }
+function hideAll() { $$('.modal').forEach((m) => m.classList.add('hidden')); stopTimer(); stopIntro(); }
 
 async function enterGame() {
   hideAll();
@@ -597,17 +728,26 @@ async function enterGame() {
   await wait(reduced() ? 0 : 380);
   home.classList.add('hidden'); home.classList.remove('leaving');
   $('#game').classList.remove('hidden');
+  window.scrollTo(0, 0);
   shownSet = null;
   startTurn();
 }
 
 function goHome() {
   hideAll();
+  ASM.onHome?.();
   $('#game').classList.add('hidden');
   $('#home').classList.remove('hidden');
   G = null;
   refreshResume();
 }
+
+ASM.novaPartida = (opts) => newGame(opts);
+ASM.entrar = () => enterGame();
+ASM.get = () => G;
+ASM.run = run;
+ASM.acoes = acoes;
+ASM.snapshot = () => (G ? snapshot() : null);
 
 function refreshResume() {
   const s = store.get(SAVE_KEY);
@@ -619,29 +759,36 @@ function refreshResume() {
   } else btn.classList.add('hidden');
 }
 
+function askConfirm({ title, sub, ok, action }) {
+  $('#confirmTitle').textContent = title;
+  $('#confirmSub').textContent = sub;
+  const b = $('#confirmOk');
+  b.textContent = ok; b.dataset.action = action;
+  show('#confirm');
+}
+
 /* ==========================================================
    Eventos
    ========================================================== */
+const MODAIS_FECHAVEIS = ['rules', 'setup', 'confirm', 'intro'];
+
 document.addEventListener('click', (e) => {
-  const seg = e.target.closest('#playersSeg button, #roundsSeg button, #setSeg button');
+  const seg = e.target.closest('#playersSeg button, #roundsSeg button, #setSeg button, #metaSeg button');
   if (seg) {
     if (seg.dataset.n) SETUP.n = +seg.dataset.n;
     if (seg.dataset.r !== undefined) SETUP.rounds = +seg.dataset.r;
     if (seg.dataset.s) SETUP.set = seg.dataset.s;
-    renderSetup(); return;
-  }
-  const placa = e.target.closest('button.pcard[data-placa]');
-  if (placa) {
-    G.pick = placa.dataset.placa; sfx.placa();
-    renderVoter(+$('[data-action="confirm-vote"]').dataset.i);
-    $(`#voteList .pcard[data-placa="${G.pick}"]`)?.focus({ preventScroll: true });
+    if (seg.dataset.m) SETUP.meta = +seg.dataset.m;
+    renderSetup();
     return;
   }
+  const marca = e.target.closest('button[data-marca]');
+  if (marca) { toggleMark(marca.dataset.marca); return; }
   const a = e.target.closest('[data-action]');
   if (!a) {
     // clique fora da folha fecha modais leves
     const m = e.target.classList?.contains('modal') ? e.target : null;
-    if (m && ['rules', 'setup', 'confirm'].includes(m.id)) hide(`#${m.id}`);
+    if (m && MODAIS_FECHAVEIS.includes(m.id)) hide(`#${m.id}`);
     return;
   }
   const act = a.dataset.action;
@@ -650,43 +797,60 @@ document.addEventListener('click', (e) => {
     case 'resume': {
       const s = store.get(SAVE_KEY);
       if (!s || s.players?.length < MIN_PLAYERS) { store.del(SAVE_KEY); return refreshResume(); }
-      G = { ...s, phase: 'spin', res: null, card: null, votes: {}, pick: null, handoff: null };
+      G = { ...s, sala: false, phase: 'draw', res: null, card: null, marks: {}, ign: {}, rerolled: false };
       enterGame(); break;
     }
     case 'start': {
       const names = $$('#namesList input').map((inp, i) => inp.value.trim() || `Jogador ${i + 1}`);
       prefs.names = $$('#namesList input').map((inp) => inp.value.trim()); savePrefs();
-      newGame({ names, rounds: SETUP.rounds, set: SETUP.set });
+      newGame({ names, rounds: SETUP.rounds, set: SETUP.set, meta: SETUP.meta });
       save(); enterGame(); break;
     }
     case 'rules': show('#rules'); break;
-    case 'close': hide(`#${a.closest('.modal').id}`); stopTimer(); break;
+    case 'intro':
+      hideAll();
+      $('[data-action="intro-play"]').textContent = G ? 'Voltar ao jogo' : 'Vamos jogar!';
+      show('#intro'); openIntro(); break;
+    case 'intro-play': if (G) hide('#intro'); else { hide('#intro'); ASM.primary(); } break;
+    case 'close':
+      hide(`#${a.closest('.modal').id}`); stopTimer(); break;
     case 'sound':
       prefs.sound = !prefs.sound; savePrefs();
       $('#soundBtn').classList.toggle('off', !prefs.sound);
       toast(prefs.sound ? 'Som ligado' : 'Som desligado'); break;
     case 'home':
-      if (G && G.turn < totalTurns()) show('#confirm'); else goHome();
+      if (G && G.turn < totalTurns()) {
+        askConfirm({
+          title: 'Sair da partida?',
+          sub: G.sala ? 'A sala será encerrada e os celulares serão desconectados.' : 'O andamento fica salvo neste aparelho. Você pode continuar depois pela tela inicial.',
+          ok: 'Sair', action: 'leave',
+        });
+      } else goHome();
+      break;
+    case 'ask-finish':
+      if (G) askConfirm({ title: 'Encerrar a partida?', sub: 'O grupo vê o resultado e a trilha termina aqui. Não tem problema encerrar antes: o que foi conversado já valeu.', ok: 'Encerrar', action: 'finish' });
       break;
     case 'leave': save(); goHome(); break;
     case 'go-home': goHome(); break;
     case 'spin': doSpin(); break;
     case 'draw': doDraw(); break;
-    case 'open-card': openCard(); break;
+    case 'open-card': if (G?.card != null) openCard(); break;
+    case 'open-mark': if (G?.phase === 'mark') { renderMark(); show('#vote'); } break;
     case 'reveal-think': revealThink(a); break;
     case 'timer': startTimer(); break;
-    case 'answered':
-      stopTimer();
-      cardAway().then(() => { hide('#spot'); G.phase = 'vote'; openVote(); });
-      break;
-    case 'open-vote': openVote(); break;
-    case 'voter-ready': G.handoff = false; G.pick = null; renderVoter(+a.dataset.i); break;
-    case 'confirm-vote': confirmVote(+a.dataset.i); break;
+    case 'to-spin': toSpin(); break;
+    case 'to-mark': toMark(); break;
+    case 'swap': swapCard(); break;
+    case 'pass': passTurn(); break;
+    case 'lens-ign': toggleIgnore(a.dataset.k); break;
+    case 'lens-reroll': reroll(a.dataset.k); break;
     case 'next': nextTurn(); break;
     case 'finish': finish(); break;
     case 'rematch': {
       const names = G.players.map((p) => p.name);
-      newGame({ names, rounds: G.rounds, set: G.set });
+      const pids = G.sala ? G.players.map((p) => p.pid) : undefined;
+      newGame({ names, pids, rounds: G.rounds, set: G.set, meta: G.meta });
+      if (G.sala) ASM.onRematch?.();
       save(); hideAll(); shownSet = null; startTurn(); break;
     }
   }
@@ -696,10 +860,11 @@ $('#deck').addEventListener('click', doDraw);
 $('#deck').addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); doDraw(); } });
 
 document.addEventListener('keydown', (e) => {
+  if (introKey(e)) return;
   if (e.key !== 'Escape') return;
   const open = $$('.modal:not(.hidden)').pop();
   if (!open) return;
-  if (['rules', 'setup', 'confirm'].includes(open.id)) hide(`#${open.id}`);
+  if (MODAIS_FECHAVEIS.includes(open.id)) hide(`#${open.id}`);
 });
 
 /* ==========================================================
@@ -733,6 +898,6 @@ function confetti() {
 $('#heroWheel').innerHTML = wheelSvg(['', '', '', '', '', ''].map((_, i) => `${i + 1}`));
 $('#heroWheel .wheel-rot')?.querySelectorAll('.seg-lbl').forEach((t) => t.remove());
 $$('#heroWheel .seg-num').forEach((t) => { t.style.display = 'block'; t.style.fontFamily = "'ASM Display', Poppins, sans-serif"; t.style.fontSize = '22px'; });
-$('#dcardTuto').src = PLACAS.amarela.img;   // mesmo Tuto da carta-dilema impressa
+$('#dcardTuto').src = 'assets/img/tuto-carta.png';   // o Tuto da carta-dilema impressa
 $('#soundBtn').classList.toggle('off', !prefs.sound);
 refreshResume();

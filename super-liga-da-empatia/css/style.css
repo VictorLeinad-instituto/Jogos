@@ -442,10 +442,9 @@ body.menu-compacto #soundBtn.off::after { content: "Som desligado"; }
 #home { background: var(--amarelo-hq); }
 .raios {
   position: absolute; inset: -40%; z-index: 0;
-  background: repeating-conic-gradient(from 0deg at 62% 48%, #FFD54A 0deg 6deg, #F89903 6deg 12deg);
-  animation: girarRaios 80s linear infinite;
+  /* padrão ESTÁTICO e de baixo contraste: o fundo girando (e as listras fortes) podia causar vertigem e incomodar quem tem sensibilidade visual */
+  background: repeating-conic-gradient(from 0deg at 62% 48%, #FFE6A0 0deg 6deg, #FFDA7A 6deg 12deg);
 }
-@keyframes girarRaios { to { transform: rotate(360deg); } }
 #home::after { content: ""; position: absolute; inset: auto 0 0 0; height: 18%; background: var(--vermelho-hq); clip-path: polygon(0 45%, 100% 0, 100% 100%, 0 100%); z-index: 1; }
 .home-logo { position: absolute; z-index: 4; top: 24px; left: clamp(20px, 5vw, 64px); width: 96px; height: auto; }
 .home-inner {
@@ -675,7 +674,7 @@ body.menu-compacto #soundBtn.off::after { content: "Som desligado"; }
   .home-lead { font-size: 15px; }
   .explosao { padding: 34px 54px 38px 44px; }
 }
-@media (prefers-reduced-motion: reduce) { .raios, .hero-tuto { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .hero-tuto { animation: none; } }
 
 /* telas baixas (celular em pé, ou janela pequena): a capa fica compacta para caber toda, sem rolagem */
 @media (max-width: 640px), (max-height: 860px) {

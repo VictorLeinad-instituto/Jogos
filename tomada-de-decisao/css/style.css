@@ -317,13 +317,13 @@ h1, h2, h3 { letter-spacing: -.02em; line-height: 1.12; text-wrap: balance; }
 .modal {
   position: fixed; inset: 0; z-index: 50;
   display: grid; place-items: center; padding: 16px;
-  background: rgba(42, 73, 71, .55);
-  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  background: rgba(16, 30, 29, .74);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
   animation: fadeIn .25s ease;
   overflow-y: auto;
 }
 @keyframes fadeIn { from { opacity: 0; } }
-.spot { background: rgba(42, 73, 71, .42); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); perspective: 1600px; }
+.spot { perspective: 1600px; }   /* o fundo é o mesmo de todas as janelas (.modal) */
 .spot-inner { width: min(100%, 640px); display: flex; flex-direction: column; align-items: center; gap: 14px; }
 .spot-who { color: var(--branco); font-weight: 600; font-size: 15px; display: flex; align-items: center; gap: 10px; }
 .spot-who .avatar { width: 40px; height: 40px; background: var(--branco); }
@@ -820,3 +820,15 @@ body.menu-compacto #soundBtn.off::after { content: "Som desligado"; }
 /* botão X (fechar) das janelas sempre visível: acompanha a rolagem da janela (antes rolava junto com o conteúdo e sumia).
    Mesma posição de antes: 12px do topo e 14px da direita; as margens negativas mantêm o conteúdo no mesmo lugar. */
 .sheet > .sheet-close { position: sticky; right: auto; top: -16px; z-index: 6; float: right; margin: -16px -10px -22px 0; }
+
+/* botões secundários em lilás claro (texto preto) */
+.btn-lilas { background: var(--lilas-claro); color: var(--preto); }
+.btn-lilas:hover { filter: brightness(.97); }
+/* com uma janela aberta, o título da barra de cima não aparece por trás do desfoque */
+body.com-modal #topbarTitle { visibility: hidden; }
+/* informações da tela inicial (igual ao Tuto e a jornada) */
+.info-body { align-items: stretch; gap: 16px; padding: 16px 16px 10px; }
+.info-item { text-align: center; }
+.info-item b { display: block; font-size: 28px; font-weight: 700; line-height: 1; color: var(--verde-escuro); }
+.info-item .plus { color: var(--amarelo); font-size: 22px; vertical-align: top; }
+.info-item small { font-size: 11px; font-weight: 700; color: var(--verde-escuro); }

@@ -1,6 +1,6 @@
 // Apresentação do jogo pelo Tuto (mesmo formato do Tuto e a jornada): balões no estilo do guia do participante,
 // palavras aparecendo no tempo da fala e o Tuto em camadas (corpo por pose, olhos piscando, boca em 5 aberturas).
-// Enquanto não há narração (INTRO.audio = null), um relógio próprio faz o papel do áudio: o balão "fala" no ritmo
+// Sem narração (INTRO.audio = null), um relógio próprio faz o papel do áudio: o balão "fala" no ritmo
 // estimado e a boca mexe palavra a palavra. Com o áudio, a boca segue o volume da voz (INTRO.boca, 25 quadros/s).
 import { INTRO } from './intro-data.js';
 

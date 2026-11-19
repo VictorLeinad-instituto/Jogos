@@ -188,9 +188,7 @@ function renderStep() {
   const p = leitor();
   const nEsc = Object.keys(G.escolhas).length;
   const txt = {
-    ler: [`${esc(p.name)} lê o dilema e as alternativas`, G.modo === 'conversa'
-      ? 'Leiam em voz alta ou cada pessoa para si. Depois, conversem sobre os caminhos.'
-      : 'Leiam em voz alta ou cada pessoa para si. Depois, cada pessoa escolhe em segredo, inclusive quem leu.'],
+    ler: [`${esc(p.name)} lê o dilema e as alternativas`, 'Leiam em voz alta ou cada pessoa para si.'],
     escolher: G.sala
       ? ['Cada pessoa escolhe no próprio celular', `${nEsc} de ${G.players.length} já escolheram. Quando todos estiverem prontos, revelem.`]
       : ['Escolhas em segredo', `${nEsc} de ${G.players.length} já escolheram. Passem o aparelho de mão em mão.`],

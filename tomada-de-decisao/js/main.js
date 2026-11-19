@@ -552,22 +552,19 @@ function openCard({ fly = false } = {}) {
 
   const p = curPlayer();
   $('#spotWho').innerHTML = `<span class="avatar"><img src="${p.avatar}" alt=""></span>${answering ? `${esc(p.name)} responde` : `Vez de ${esc(p.name)}: leia em voz alta`}`;
-  const think = `<button class="think locked" data-action="reveal-think" data-think="${esc(d.p)}"><b>Para pensar</b><span>Mostrar uma pergunta de apoio</span></button>`;
   if (answering) {
     extra.innerHTML = `
       <p class="prompt">${esc(p.name)} responde: <b>“Uma possibilidade seria…”</b>. Quem escuta pode acrescentar: <b>“Outra alternativa poderia ser…”</b> ou <b>“Uma consequência possível seria…”</b>. Ninguém precisa aceitar as sugestões.</p>
       <div id="lensesBox">${lensesHtml()}</div>
-      ${think}`;
+      `;
     actions.innerHTML = `
-      <span class="timer hidden" id="timer">Tempo para pensar <b id="timerN">60</b></span>
-      <button class="btn btn-soft btn-pill" data-action="timer">Cronômetro de 1 min</button>
       <button class="btn btn-primary btn-pill" data-action="to-mark">Registrar marcadores</button>`;
   } else {
     extra.innerHTML = `
       <p class="prompt">O dilema já faz sentido sozinho: as roletas virão depois, como lentes para pensar. Você pode <b>passar a vez</b>, <b>trocar de carta</b> ou responder sem contar nada vivido por você.</p>
-      ${think}`;
+      `;
     actions.innerHTML = `
-      <button class="btn btn-outline btn-pill" data-action="pass">Passar a vez</button>
+      <button class="btn btn-lilas btn-pill" data-action="pass">Passar a vez</button>
       <button class="btn btn-soft btn-pill" data-action="swap">Trocar de carta</button>
       <button class="btn btn-primary btn-pill" data-action="to-spin">Girar as roletas</button>`;
   }
@@ -579,24 +576,6 @@ function openCard({ fly = false } = {}) {
   return Promise.resolve();
 }
 
-function revealThink(btn) {
-  const div = document.createElement('div');
-  div.className = 'think';
-  div.innerHTML = `<b>Para pensar</b>${esc(btn.dataset.think)}`;
-  btn.replaceWith(div);
-}
-
-function startTimer() {
-  stopTimer();
-  let n = 60;
-  const el = $('#timer'); el?.classList.remove('hidden');
-  $('[data-action="timer"]')?.classList.add('hidden');
-  timerT = setInterval(() => {
-    n--; const nEl = $('#timerN'); if (nEl) nEl.textContent = n;
-    if (n <= 5 && n > 0) sfx.tick();
-    if (n <= 0) { stopTimer(); sfx.chime(); if (el) el.innerHTML = 'Tempo esgotado. Quem precisar de mais tempo pode pedir.'; }
-  }, 1000);
-}
 function stopTimer() { clearInterval(timerT); timerT = null; }
 
 /* ---------- marcadores de raciocínio ---------- */
@@ -717,9 +696,11 @@ ASM.roundsHtml = roundsHtml; ASM.setHtml = setHtml; ASM.metaHtml = metaHtml;
 /* ==========================================================
    Telas e modais
    ========================================================== */
-function show(sel) { $(sel).classList.remove('hidden'); const f = $(`${sel} [data-action]:not(.sheet-close)`); f?.focus({ preventScroll: true }); }
-function hide(sel) { $(sel).classList.add('hidden'); if (sel === '#intro') stopIntro(); }
-function hideAll() { $$('.modal').forEach((m) => m.classList.add('hidden')); stopTimer(); stopIntro(); }
+// com uma janela aberta, o título da barra de cima não pode aparecer por trás do desfoque
+const marcaModal = () => document.body.classList.toggle('com-modal', !!document.querySelector('.modal:not(.hidden)'));
+function show(sel) { $(sel).classList.remove('hidden'); marcaModal(); const f = $(`${sel} [data-action]:not(.sheet-close)`); f?.focus({ preventScroll: true }); }
+function hide(sel) { $(sel).classList.add('hidden'); marcaModal(); if (sel === '#intro') stopIntro(); }
+function hideAll() { $$('.modal').forEach((m) => m.classList.add('hidden')); marcaModal(); stopTimer(); stopIntro(); }
 
 async function enterGame() {
   hideAll();
@@ -836,8 +817,6 @@ document.addEventListener('click', (e) => {
     case 'draw': doDraw(); break;
     case 'open-card': if (G?.card != null) openCard(); break;
     case 'open-mark': if (G?.phase === 'mark') { renderMark(); show('#vote'); } break;
-    case 'reveal-think': revealThink(a); break;
-    case 'timer': startTimer(); break;
     case 'to-spin': toSpin(); break;
     case 'to-mark': toMark(); break;
     case 'swap': swapCard(); break;

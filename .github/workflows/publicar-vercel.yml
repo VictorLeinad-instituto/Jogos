@@ -1,0 +1,90 @@
+# Publica o jogo na Vercel do Alex a cada merge na main (produção) e gera um link de teste em cada PR.
+# Não usa a integração Git da Vercel (que bloqueia commits de quem não é da equipe dele no plano gratuito):
+# quem publica é este workflow, com o token da Vercel do Alex guardado no segredo VERCEL_TOKEN deste repositório.
+# Segredos: VERCEL_TOKEN (obrigatório) e VERCEL_TEAM_ID (só se o projeto ficar numa equipe da Vercel).
+# As variáveis opcionais da matriz (vars.VERCEL_PROJETO...) trocam o nome do projeto sem mexer no código.
+# O projeto é criado sozinho na primeira vez, sem build e com o link público (sem login da Vercel).
+# Modelo em ferramentas/vercel/ (pasta Jogos); não editar à mão em um repositório só.
+name: Publicar na Vercel
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: vercel-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  publicar:
+    # PR vindo de fork não tem acesso aos segredos
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - pasta: tomada-de-decisao
+            projeto: ${{ vars.VERCEL_PROJETO_TOMADA || 'jogo-tomada-de-decisao' }}
+          - pasta: super-liga-da-empatia
+            projeto: ${{ vars.VERCEL_PROJETO_SUPER_LIGA || 'jogo-super-liga-da-empatia' }}
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
+      PROJETO: ${{ matrix.projeto }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Conferir o token
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "::warning::Falta o segredo VERCEL_TOKEN neste repositório: nada foi publicado."
+            echo "PULAR=1" >> "$GITHUB_ENV"
+          fi
+
+      - name: Projeto na Vercel (cria se não existir)
+        if: env.PULAR != '1'
+        run: |
+          q=""; [ -n "$VERCEL_TEAM_ID" ] && q="?teamId=$VERCEL_TEAM_ID"
+          api() { curl -sS -H "Authorization: Bearer $VERCEL_TOKEN" -H "Content-Type: application/json" "$@"; }
+          r=$(api "https://api.vercel.com/v9/projects/$PROJETO$q")
+          id=$(echo "$r" | jq -r '.id // empty')
+          if [ -z "$id" ]; then
+            echo "Criando o projeto $PROJETO"
+            r=$(api -X POST "https://api.vercel.com/v11/projects$q" -d "{\"name\":\"$PROJETO\",\"framework\":null}")
+            id=$(echo "$r" | jq -r '.id // empty')
+            [ -n "$id" ] || { echo "$r"; exit 1; }
+            # link de teste dos PRs aberto para quem não tem conta na Vercel
+            api -X PATCH "https://api.vercel.com/v9/projects/$id$q" -d '{"ssoProtection":null}' > /dev/null
+          fi
+          echo "VERCEL_PROJECT_ID=$id" >> "$GITHUB_ENV"
+          echo "VERCEL_ORG_ID=$(echo "$r" | jq -r '.accountId')" >> "$GITHUB_ENV"
+
+      - name: Publicar
+        if: env.PULAR != '1'
+        working-directory: ${{ matrix.pasta }}
+        run: |
+          prod=""
+          if [ "$GITHUB_EVENT_NAME" != "pull_request" ] && [ "$GITHUB_REF" = "refs/heads/main" ]; then prod="--prod"; fi
+          url=$(npx --yes vercel@62.0.0 deploy $prod --yes --token "$VERCEL_TOKEN")
+          echo "URL=$url" >> "$GITHUB_ENV"
+          if [ -n "$prod" ]; then
+            echo "Publicado em produção no projeto $PROJETO (em geral https://$PROJETO.vercel.app). Esta versão: $url" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Link de teste deste PR: $url" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Link de teste no PR
+        if: env.PULAR != '1' && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          corpo="Link de teste (${PROJETO}): ${URL} — versão ${GITHUB_SHA::7}"
+          gh pr comment "$PR" -R "$GITHUB_REPOSITORY" --body "$corpo"

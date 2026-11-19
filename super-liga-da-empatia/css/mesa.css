@@ -1,0 +1,157 @@
+/* ==========================================================
+   Mesa da Super Liga: tabuleiro grande, monte de cartas e carta aberta sobre o tabuleiro.
+   Carregado depois de style.css; usa #game nos seletores para valer sobre o layout antigo.
+   ========================================================== */
+#game { height: 100dvh; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+#game .mesa {
+  --pilhaw: clamp(70px, 8.5vw, 112px);
+  --lado: clamp(104px, 12vw, 150px);
+  --bw: min(calc(100vw - 2 * var(--lado) - 40px), calc((100dvh - 78px - 108px - 56px) * 11 / 6));
+  position: relative; flex: 1; min-height: 0; height: auto; width: 100%; max-width: none; margin: 0; padding: 8px 16px 104px;
+  display: grid; grid-template-columns: var(--lado) var(--bw) var(--lado); justify-content: center; align-items: center; justify-items: center; gap: 12px;
+  overflow: hidden;
+}
+
+/* tabuleiro */
+#game .tabuleiro { grid-column: 2; display: grid; gap: 10px; width: 100%; background: none; border: 0; box-shadow: none; padding: 0; }
+#game .cab { display: flex; align-items: center; gap: 16px; min-height: 44px; }
+#game .cab .meta { flex: none; }
+#game .cab .meta b { font-size: 36px; }
+#game .cab .barra { flex: 1; }
+#game .placar { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+#game .placar li { display: flex; align-items: center; gap: 6px; padding: 4px 12px 4px 4px; border-radius: 999px; background: var(--branco); font-size: 13.5px; font-weight: 600; box-shadow: var(--shadow); }
+#game .placar li.vez { background: var(--amarelo); }
+#game .placar b { font-family: var(--font-display); font-weight: 400; font-size: 20px; }
+#game .grade { position: relative; width: 100%; aspect-ratio: 11 / 6; display: grid; grid-template-columns: repeat(11, 1fr); grid-template-rows: repeat(6, 1fr); gap: 4px; }
+#game .tabuleiro.sem-pontos .grade { display: none; }
+#game .sq { position: relative; display: grid; place-items: center; border-radius: 10px; background: var(--verde-reb); box-shadow: inset 0 0 0 1.5px rgba(42, 73, 71, .16); transition: background .3s; }
+#game .sq small { position: absolute; left: 6px; top: 3px; font-size: clamp(9px, 1vw, 12px); font-weight: 700; color: var(--ink-2); }
+#game .sq.on { background: var(--amarelo-reb); }
+#game .sq.marco { background: var(--branco); }
+#game .sq.marco.on { background: var(--amarelo-reb); }
+#game .sq img { width: 70%; aspect-ratio: 1; border-radius: 50%; filter: grayscale(1) opacity(.45); transition: filter .4s; }
+#game .sq.on img { filter: none; }
+#game .sq.fim { background: var(--amarelo); }
+#game .sq.fim b { font-size: clamp(12px, 1.6vw, 20px); color: var(--preto); }
+#game .casa-inicio { display: grid; place-items: center; border-radius: 10px; background: var(--amarelo); color: var(--preto); font-weight: 700; font-size: clamp(10px, 1.2vw, 14px); text-transform: uppercase; letter-spacing: .06em; }
+#game .peoes { position: absolute; inset: 0; pointer-events: none; }
+#game .peao { position: absolute; transform: translate(calc(-50% + var(--dx, 0px)), -50%); transition: left .19s linear, top .19s linear; }
+#game .peao .av.ficha { display: block; width: clamp(24px, 3.4vw, 42px); height: clamp(24px, 3.4vw, 42px); box-shadow: 0 0 0 2px var(--branco), 0 3px 7px rgba(0, 0, 0, .35); font-size: 14px; }
+
+/* montes */
+#game .monte, #game .lidas { display: grid; justify-items: center; gap: 6px; text-align: center; background: none; padding: 0; min-width: 0; }
+#game .monte { grid-column: 1; cursor: pointer; }
+#game .lidas { grid-column: 3; }
+#game .monte b, #game .lidas b { font-size: 14px; color: var(--verde-escuro); }
+#game .monte small, #game .lidas small { font-size: 12px; font-weight: 600; color: var(--ink-2); }
+#game .pilha {
+  display: block; width: var(--pilhaw); aspect-ratio: 1 / 1.4; border-radius: 10px;
+  background: var(--capa) center / 100% 100% no-repeat, var(--amarelo);
+  box-shadow: 2px 2px 0 var(--branco), 3px 3px 0 rgba(42, 73, 71, .35), 5px 5px 0 var(--branco), 6px 6px 0 rgba(42, 73, 71, .35), 0 12px 22px rgba(42, 73, 71, .22);
+  transition: transform .25s var(--ease-back);
+}
+#game .lidas .pilha { filter: saturate(.55) brightness(1.05); }
+#game .monte:hover .pilha { transform: translateY(-4px) rotate(-1.5deg); }
+#game .monte.pulsa .pilha { animation: pulsaMonte 1.5s ease-in-out infinite; }
+#game .monte.vazio .pilha, #game .lidas.vazio .pilha { background: transparent; box-shadow: none; border: 2px dashed rgba(42, 73, 71, .35); filter: none; animation: none; }
+@keyframes pulsaMonte { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px) rotate(-2deg); } }
+
+/* carta aberta sobre o tabuleiro */
+#game .palco {
+  position: fixed; top: 78px; left: 0; right: 0; bottom: 0; z-index: 30; display: none; align-items: stretch; justify-content: center; gap: 24px;
+  padding: 12px 16px 84px; background: rgba(42, 73, 71, .5); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); overflow: auto;
+}
+#game.aberta .palco { display: flex; }
+#game .mesa-carta { --cardw: min(460px, calc((100dvh - 78px - 84px - 28px) / 1.6), 56vw); perspective: 1400px; flex: none; margin-block: auto; }
+#game .carta { margin: 0 auto; }
+#game .apoio { width: min(340px, 34vw); display: grid; gap: 10px; margin-block: auto; flex: none; }
+#game .apoio:empty { display: none !important; }
+#game .apoio .aviso, #game .apoio .conversa { box-shadow: var(--shadow-lg); }
+.carta-verso { background: var(--capa) center / 100% 100% no-repeat, var(--amarelo); }
+
+/* painel da etapa: barra baixa e fixa embaixo */
+#game .step {
+  position: fixed; z-index: 45; left: 50%; right: auto; top: auto; bottom: max(10px, env(safe-area-inset-bottom)); transform: translateX(-50%);
+  width: min(calc(100% - 24px), 680px); display: flex; flex-wrap: nowrap; align-items: center; gap: 12px; padding: 8px 14px; border-radius: 22px; justify-self: auto;
+  background: var(--branco); box-shadow: var(--shadow-lg);
+}
+#game .step .av.grande, #game .step .avatar { width: 40px; height: 40px; flex: none; }
+#game .step-txt { flex: 1 1 auto; min-width: 0; }
+#game .step-txt b { font-size: 14.5px; }
+#game .step-txt span { display: block; font-size: 12.5px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#game .step-txt b { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#game .step-dots { display: none; }
+#game .step-btns { display: flex; flex-wrap: nowrap; gap: 8px; flex: none; width: auto; }
+#game .step .btn, #game .step-btns .btn { flex: none; width: auto; padding: 10px 18px; font-size: 14px; white-space: nowrap; }
+/* na sala com QR code a prioridade é o celular: a mesa não mostra os botões da etapa */
+#game.sala .step-btns { display: none; }
+
+/* telas estreitas: tabuleiro em cima e os dois montes embaixo dele */
+@media (max-width: 860px) {
+  #game .mesa { --bw: min(calc(100vw - 24px), calc((100dvh - 78px - 110px - 120px - 56px) * 11 / 6)); grid-template-columns: 1fr 1fr; grid-template-rows: auto auto; justify-items: center; align-content: start; padding: 10px 12px 96px; gap: 10px 12px; }
+  #game .tabuleiro { grid-column: 1 / -1; grid-row: 1; width: var(--bw); }
+  #game .monte { grid-column: 1; grid-row: 2; justify-self: end; margin-right: 12px; }
+  #game .lidas { grid-column: 2; grid-row: 2; justify-self: start; margin-left: 12px; }
+  #game .pilha { --pilhaw: 64px; width: 64px; }
+  #game .palco { flex-direction: column; justify-content: flex-start; padding: 12px 12px 100px; }
+  #game .mesa-carta { --cardw: min(420px, calc(100vw - 32px), calc((100dvh - 78px - 100px - 28px) / 1.6)); }
+  #game .apoio { width: min(420px, calc(100vw - 32px)); }
+  #game .step-txt span { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { #game .monte.pulsa .pilha { animation: none; } #game .peao { transition: none; } }
+
+/* aviso rápido: acima da barra da etapa */
+.toast { bottom: 84px; }
+@media (max-width: 860px) {
+  #game .step { flex-wrap: wrap; gap: 6px 10px; padding: 8px 12px; border-radius: 20px; }
+  #game .step-txt { flex: 1 1 calc(100% - 56px); }
+  #game .step-btns { width: 100%; }
+  #game .step-btns .btn { flex: 1 1 0; padding: 10px 8px; }
+  #game .palco { padding-bottom: 124px; }
+  #game .mesa { padding-bottom: 124px; }
+  .toast { bottom: 128px; }
+}
+
+/* pontos da rodada, em destaque ao lado da carta revelada */
+#game .pontos-rodada { background: var(--amarelo); color: var(--preto); border-radius: 20px; padding: 14px 18px; text-align: center; box-shadow: var(--shadow-lg); }
+#game .pontos-rodada small { display: block; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+#game .pontos-rodada b { display: block; font-size: clamp(20px, 2.4vw, 30px); line-height: 1.15; }
+
+/* a tela do jogo nunca rola (a carta é ajustada em js/main.js para caber) */
+html, body { overflow: hidden; }
+
+/* quadro "Nesta carta" na mesa: explosão como a da capa */
+#game .pontos-rodada { position: relative; isolation: isolate; background: none; box-shadow: none; border-radius: 0; padding: 50px 40px 54px; filter: drop-shadow(5px 5px 0 var(--preto)); animation: estouraMesa .55s var(--ease-back) both; }
+#game .pontos-rodada::before { content: ""; position: absolute; inset: 0; z-index: -1; background: var(--rosa-hq); clip-path: polygon(50% 0, 58% 12%, 70% 2%, 72% 16%, 88% 8%, 84% 24%, 100% 22%, 91% 38%, 100% 50%, 90% 58%, 99% 74%, 83% 74%, 86% 92%, 70% 84%, 62% 100%, 52% 88%, 40% 100%, 35% 84%, 18% 94%, 20% 76%, 2% 78%, 11% 62%, 0 50%, 10% 40%, 2% 24%, 18% 24%, 14% 6%, 30% 14%, 38% 0, 44% 12%); }
+#game .pontos-rodada small { font-size: 12px; font-weight: 800; }
+#game .pontos-rodada b { font-size: clamp(20px, 2.2vw, 28px); font-weight: 800; }
+#game .pontos-rodada b.num { font-size: clamp(44px, 5vw, 64px); letter-spacing: -.03em; }
+#game .pontos-rodada span { display: block; font-size: 15px; font-weight: 800; text-transform: uppercase; }
+@keyframes estouraMesa { 0% { transform: scale(.4) rotate(-8deg); opacity: 0; } 100% { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { #game .pontos-rodada { animation: none; } }
+
+/* sala com pontos: a carta some e só a explosão de pontos fica, no centro do tabuleiro */
+#game.carta-ida .mesa-carta { display: none; }
+#game.so-pontos .palco { justify-content: center; }
+#game.so-pontos .apoio { width: min(520px, 80vw); }
+#game.so-pontos .pontos-rodada { padding: 72px 64px 76px; }
+#game.so-pontos .pontos-rodada b.num { font-size: clamp(64px, 9vw, 120px); }
+#game.so-pontos .pontos-rodada small { font-size: 14px; }
+#game.so-pontos .pontos-rodada span { font-size: clamp(16px, 1.8vw, 24px); }
+
+/* a carta (palco) fica sempre por cima de tudo: os peões não vazam para fora do tabuleiro */
+#game .peoes { z-index: 1; isolation: isolate; }
+#game .tabuleiro, #game .grade { position: relative; z-index: 0; }
+/* na sala a mesa só mostra: não há o que tocar nela */
+#game.sala .monte { cursor: default; pointer-events: none; }
+#game.sala .monte:hover .pilha { transform: none; }
+/* superpoder(es) junto com os pontos */
+#game .liga-completa { margin: 0; text-align: center; font-weight: 800; font-size: clamp(18px, 2vw, 26px); color: var(--branco); text-shadow: 0 2px 6px rgba(0, 0, 0, .4); }
+#game .poder-novo-mesa { background: var(--branco); border-radius: 22px; padding: 14px 16px 16px; box-shadow: var(--shadow-lg); text-align: center; animation: estouraMesa .6s var(--ease-back) .3s both; }
+#game .poder-novo-mesa h3 { margin: 0 0 10px; font-size: 14px; text-transform: uppercase; letter-spacing: .06em; color: var(--verde-escuro); }
+#game .pw-lista { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; }
+#game .pw-lista figure { margin: 0; display: grid; justify-items: center; gap: 4px; }
+#game .pw-lista img { width: clamp(72px, 9vw, 112px); aspect-ratio: 1; border-radius: 50%; box-shadow: 0 0 0 4px var(--amarelo), 0 8px 18px rgba(200, 120, 0, .3); }
+#game .pw-lista figcaption b { display: block; font-size: 17px; }
+#game .pw-lista figcaption small { display: block; font-size: 12px; font-weight: 600; color: var(--ink-2); }
+@media (prefers-reduced-motion: reduce) { #game .poder-novo-mesa { animation: none; } }

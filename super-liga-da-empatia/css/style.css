@@ -270,7 +270,7 @@ h1, h2, h3 { letter-spacing: -.02em; line-height: 1.12; text-wrap: balance; }
   .names-list { grid-template-columns: 1fr; }
 }
 @media (max-width: 640px) {
-  .home-info { transform: scale(.78); transform-origin: top right; }
+  .home-info { }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
@@ -390,7 +390,7 @@ h1, h2, h3 { letter-spacing: -.02em; line-height: 1.12; text-wrap: balance; }
 .ibtn.mute { margin-left: 4px; background: transparent; }
 .ibtn[hidden] { display: none; }
 .ibtn.mute .i-off { display: none; }
-.ibtn.mute[aria-pressed="true"] { color: #b3402d; background: #fdecea; }
+.ibtn.mute[aria-pressed="true"] { color: var(--verde-escuro); background: var(--lilas-claro); }
 .ibtn.mute[aria-pressed="true"] .i-on { display: none; }
 .ibtn.mute[aria-pressed="true"] .i-off { display: inline; }
 
@@ -432,21 +432,21 @@ body.menu-compacto #soundBtn.off::after { content: "Som desligado"; }
    Super Liga da Empatia — peças próprias (estilo HQ do material impresso)
    Texto preto sobre amarelo, laranja e rosa; branco só sobre verde escuro.
    ========================================================== */
-:root { --rosa-hq: #FC1156; --vermelho-hq: #E8352B; --amarelo-hq: #FFC20E; }
+:root { --rosa-hq: #E3C5EA; --vermelho-hq: #E3C5EA; --amarelo-hq: #FFC20E; }   /* lilás da marca (explosões) e verde escuro (faixa de baixo), no lugar do rosa/vermelho do material impresso */
 
 /* botões simples (apresentação do Tuto) */
 .pbtn { display: inline-flex; align-items: center; justify-content: center; padding: 12px 22px; border-radius: 999px; font-weight: 600; background: var(--verde-reb); color: var(--verde-escuro); }
 .pbtn.primary { background: var(--amarelo); color: var(--preto); }
 
 /* ---------- tela inicial ---------- */
-#home { background: var(--amarelo-hq); }
+#home { background: var(--amarelo-hq); --hs: min(44vw, 64vh); --hr: clamp(0px, 3vw, 60px); --hb: 6%; }
 .raios {
-  position: absolute; inset: -40%; z-index: 0;
+  position: absolute; inset: 0; z-index: 0;
   /* padrão ESTÁTICO e de baixo contraste: o fundo girando (e as listras fortes) podia causar vertigem e incomodar quem tem sensibilidade visual */
-  background: repeating-conic-gradient(from 0deg at 62% 48%, #FFE6A0 0deg 6deg, #FFDA7A 6deg 12deg);
+  background: repeating-conic-gradient(from 0deg at calc(100% - var(--hr) - var(--hs) / 2) calc(100% - var(--hb) - var(--hs) / 2), #FFE6A0 0deg 6deg, #FFDA7A 6deg 12deg);
 }
 #home::after { content: ""; position: absolute; inset: auto 0 0 0; height: 18%; background: var(--vermelho-hq); clip-path: polygon(0 45%, 100% 0, 100% 100%, 0 100%); z-index: 1; }
-.home-logo { position: absolute; z-index: 4; top: 24px; left: clamp(20px, 5vw, 64px); width: 96px; height: auto; }
+.home-logo { position: absolute; z-index: 4; top: 22px; left: clamp(16px, 4vw, 48px); width: 104px; height: auto; }   /* mesmo tamanho da logo do "cuidar da mente" */
 .home-inner {
   position: relative; z-index: 3; height: 100%; display: flex; flex-direction: column; justify-content: safe center;
   padding: 120px clamp(20px, 5vw, 64px) 90px; max-width: 700px;
@@ -454,36 +454,45 @@ body.menu-compacto #soundBtn.off::after { content: "Som desligado"; }
 .home-kicker { align-self: flex-start; font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; background: var(--preto); color: var(--branco); padding: 4px 14px; border-radius: 999px; }
 /* título dentro de uma "explosão" rosa, como na capa do material */
 .explosao {
-  position: relative; margin: 14px 0 6px; align-self: flex-start; padding: 44px 64px 48px 54px;
+  position: relative; isolation: isolate; filter: drop-shadow(6px 6px 0 var(--preto)); margin: 38px 0 10px; align-self: flex-start; padding: 58px 80px 62px; text-align: center;
   font-weight: 800; font-size: clamp(30px, min(5vw, 7vh), 58px); line-height: .98; letter-spacing: -.02em; color: var(--preto); text-transform: uppercase;
 }
 .explosao::before {
   content: ""; position: absolute; inset: 0; z-index: -1; background: var(--rosa-hq);
   clip-path: polygon(50% 0, 58% 12%, 70% 2%, 72% 16%, 88% 8%, 84% 24%, 100% 22%, 91% 38%, 100% 50%, 90% 58%, 99% 74%, 83% 74%, 86% 92%, 70% 84%, 62% 100%, 52% 88%, 40% 100%, 35% 84%, 18% 94%, 20% 76%, 2% 78%, 11% 62%, 0 50%, 10% 40%, 2% 24%, 18% 24%, 14% 6%, 30% 14%, 38% 0, 44% 12%);
-  filter: drop-shadow(6px 6px 0 var(--preto));
 }
 .explosao span { display: block; position: relative; }
-.home-lead { margin: 14px 0 8px; font-size: clamp(15px, 1.5vw, 18px); font-weight: 600; color: var(--preto); max-width: 30em; background: rgba(255, 255, 255, .78); padding: 10px 14px; border-radius: 16px; box-shadow: 4px 4px 0 var(--preto); }
+.home-lead { margin: 14px 0 8px; font-size: clamp(15px, 1.5vw, 18px); font-weight: 600; color: var(--preto); max-width: 30em; }
 .home-seguro { margin: 8px 0 18px; max-width: 34em; font-size: 13px; font-weight: 500; color: var(--preto); }
-.home-cta { display: flex; gap: 12px; flex-wrap: wrap; max-width: 620px; }
-.home-cta .btn { flex: 1 1 0; min-width: 0; border: 2px solid var(--preto); box-shadow: 4px 4px 0 var(--preto); }
-.home-cta .btn b { font-size: 16px; }
-.home-cta .btn small { font-size: 12px; line-height: 1.3; }
+.home-cta { display: flex; gap: 14px; flex-wrap: wrap; max-width: 640px; }
+.home-cta .btn { flex: none; }
 .home-links { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
 .home-info { position: absolute; z-index: 4; right: clamp(16px, 4vw, 48px); top: 22px; }
 .info-body { gap: 16px; }
 .info-age .plus.mais { position: static; font-size: 30px; margin-left: 2px; }
 .info-body .info-age { flex-direction: column; }
-.home-hero { position: absolute; z-index: 2; right: clamp(0px, 3vw, 60px); bottom: 6%; width: min(44vw, 64vh); aspect-ratio: 1; pointer-events: none; }
-.hero-tuto { position: absolute; left: 22%; top: 24%; width: 56%; height: auto; animation: voar 4s ease-in-out infinite; filter: drop-shadow(0 14px 18px rgba(80, 30, 0, .3)); }
-@keyframes voar { 50% { transform: translateY(-14px) rotate(-2deg); } }
+.home-hero { position: absolute; z-index: 2; right: var(--hr); bottom: var(--hb); width: var(--hs); aspect-ratio: 1; pointer-events: none; }
+.hero-tuto { position: absolute; left: 50%; top: 50%; width: 56%; height: auto; animation: voar 4s ease-in-out infinite; filter: drop-shadow(0 14px 18px rgba(80, 30, 0, .3)); }
+@keyframes voar { 0%, 100% { transform: translate(-50%, -50%); } 50% { transform: translate(-50%, calc(-50% - 14px)) rotate(-2deg); } }
 .home-poderes { position: absolute; inset: 0; }
 .home-poderes img { position: absolute; width: 20%; left: calc(50% - 10%); top: calc(50% - 10%); border-radius: 50%; box-shadow: 0 6px 14px rgba(80, 30, 0, .25);
   transform: rotate(calc(var(--i) * 32.7deg)) translateY(-215%) rotate(calc(var(--i) * -32.7deg)); }
 
+/* botões, links e quadro de informações no formato do "cuidar da mente" (fundo e título continuam os da Super Liga) */
+.home-cta .btn { border: 0; box-shadow: 0 10px 26px rgba(42, 73, 71, .14); padding: 14px 22px 14px 14px; border-radius: 20px; text-align: left; }
+.home-cta .btn-primary { color: var(--preto); box-shadow: 0 10px 26px rgba(200, 120, 0, .32); }
+.home-cta .btn:hover:not(:disabled) { transform: translateY(-3px); }
+.home-links { margin-top: 24px; gap: 14px; }
+.home-info { right: clamp(40px, 9vw, 150px); top: 16px; }
+.info-pill { font-size: 12.5px; padding: 4px 18px; margin-left: -4px; border-width: 2px; }
+.info-body { margin-top: -10px; display: flex; gap: 18px; align-items: stretch; padding: 16px 18px 10px; border-width: 2px; border-radius: 18px; box-shadow: 9px 9px 0 var(--amarelo-reb); }
+.info-item { text-align: center; }
+.info-item b { display: block; font-size: 34px; font-weight: 700; line-height: 1; color: var(--verde-escuro); }
+.info-item .plus { color: var(--amarelo); font-size: 26px; vertical-align: top; }
+.info-item small { font-size: 12.5px; margin-top: 4px; display: block; font-weight: 700; color: var(--verde-escuro); }
 /* ---------- mesa ---------- */
-#game { background: var(--offwhite) radial-gradient(rgba(252, 17, 86, .09) 1.2px, transparent 1.3px) 0 0 / 14px 14px; }
-#topbar { background: var(--offwhite); border-bottom: 4px solid var(--rosa-hq); }
+#game { background: var(--offwhite) radial-gradient(rgba(248, 153, 3, .13) 1.2px, transparent 1.3px) 0 0 / 14px 14px; }
+#topbar { background: var(--offwhite); border-bottom: 4px solid var(--amarelo); }
 .brand img { width: 74px; }
 .mesa {
   display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 22px; align-items: start;
@@ -494,10 +503,11 @@ body.menu-compacto #soundBtn.off::after { content: "Som desligado"; }
 
 /* a carta: branca com faixa rosa, como as cartas-dilema do material */
 .carta {
-  position: relative; background: var(--branco); border: 3px solid var(--preto); border-radius: 24px; padding: 0 22px 22px;
-  box-shadow: 8px 8px 0 var(--rosa-hq); overflow: hidden;
+  position: relative; background: var(--branco); border: 0; border-radius: 24px; padding: 0 22px 22px;
+  box-shadow: 0 12px 32px rgba(42, 73, 71, .12), 0 4px 8px rgba(42, 73, 71, .06); overflow: hidden;
+  width: min(100%, 600px); justify-self: center;
 }
-.carta-cab { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin: 0 -22px 14px; padding: 12px 22px; background: var(--rosa-hq); color: var(--preto); border-bottom: 3px solid var(--preto); }
+.carta-cab { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin: 0 -22px 14px; padding: 12px 22px; background: var(--amarelo); color: var(--preto); }
 .carta-n { font-weight: 800; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
 .carta-n b { font-family: var(--font-display); font-weight: 400; font-size: 28px; letter-spacing: 0; line-height: 1; vertical-align: -3px; }
 .carta-tema { font-weight: 700; font-size: 14px; letter-spacing: .02em; }
@@ -506,14 +516,14 @@ body.menu-compacto #soundBtn.off::after { content: "Som desligado"; }
 .alts { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .alt { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 16px; background: var(--verde-fundo); }
 .alt.rev { grid-template-columns: 36px minmax(0, 1fr) auto auto; }
-.alt-l { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; background: var(--amarelo); color: var(--preto); border: 2px solid var(--preto); }
+.alt-l { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; background: var(--amarelo); color: var(--preto); }
 .alt-t { font-size: 15px; line-height: 1.4; }
 .alt-p { display: grid; place-items: center; min-width: 54px; padding: 4px 8px; border-radius: 12px; background: var(--verde-escuro); color: var(--branco); font-family: var(--font-display); font-size: 24px; line-height: 1; animation: pop .45s var(--ease-back) both; }
 .alt-p small { font-family: var(--font); font-size: 10px; letter-spacing: .04em; }
 .alt-quem { display: flex; align-items: center; gap: 2px; font-size: 12.5px; color: var(--ink-2); white-space: nowrap; }
 .alt-quem b { color: var(--preto); font-size: 15px; margin-right: 2px; }
 @keyframes pop { from { transform: scale(.6); opacity: 0; } }
-.carta.mini { box-shadow: 5px 5px 0 var(--rosa-hq); border-radius: 18px; padding: 0 14px 14px; }
+.carta.mini { box-shadow: 0 4px 12px rgba(42, 73, 71, .08), 0 2px 4px rgba(42, 73, 71, .06); width: auto; border-radius: 18px; padding: 0 14px 14px; }
 .carta.mini .carta-cab { margin: 0 -14px 10px; padding: 8px 14px; }
 .carta.mini .carta-n b { font-size: 20px; }
 .carta.mini .carta-dilema { font-size: 15px; padding-right: 0; margin-bottom: 10px; }
@@ -551,19 +561,19 @@ body.menu-compacto #soundBtn.off::after { content: "Som desligado"; }
 .meta.bump b { animation: bump .6s var(--ease-back); }
 @keyframes bump { 40% { transform: scale(1.3); } }
 .barra { height: 12px; border-radius: 99px; background: var(--verde-reb); overflow: hidden; }
-.barra i { display: block; height: 100%; border-radius: 99px; background: var(--rosa-hq); transition: width .6s var(--ease); }
+.barra i { display: block; height: 100%; border-radius: 99px; background: var(--amarelo); transition: width .6s var(--ease); }
 .cartela { display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; }
 .cartela i { aspect-ratio: 1; border-radius: 4px; background: var(--verde-fundo); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .1); }
-.cartela i.marco { box-shadow: inset 0 0 0 2px var(--rosa-hq); }
+.cartela i.marco { box-shadow: inset 0 0 0 2px var(--amarelo); }
 .cartela i.on { background: var(--amarelo); }
 .cartela i.fim { background: var(--preto); }
-.cartela i.fim.on { background: var(--rosa-hq); }
+.cartela i.fim.on { background: var(--amarelo); }
 .poderes { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 .poderes li { position: relative; text-align: center; }
 .poderes img { width: 100%; aspect-ratio: 1; border-radius: 50%; filter: grayscale(1) opacity(.35); transition: filter .5s; }
 .poderes li.on img { filter: none; animation: pop .6s var(--ease-back); }
 .poderes small { position: absolute; right: -2px; bottom: -2px; background: var(--preto); color: var(--branco); font-size: 10px; font-weight: 700; border-radius: 99px; padding: 1px 5px; }
-.poderes li.on small { background: var(--rosa-hq); color: var(--preto); }
+.poderes li.on small { background: var(--amarelo); color: var(--preto); }
 .poderes.peq { grid-template-columns: repeat(auto-fit, minmax(60px, 1fr)); margin: 10px 0; }
 .jogs { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .jogs li { display: flex; align-items: center; gap: 10px; padding: 5px 10px 5px 5px; border-radius: 14px; }
@@ -638,11 +648,12 @@ body.menu-compacto #soundBtn.off::after { content: "Som desligado"; }
 @media (max-width: 1000px) {
   .mesa { grid-template-columns: minmax(0, 1fr); }
   .poderes { grid-template-columns: repeat(6, 1fr); }
-  .home-hero { width: min(52vw, 46vh); opacity: .95; }
+  #home { --hs: min(52vw, 46vh); }
+  .home-hero { opacity: .95; }
 }
 @media (max-width: 760px) {
   .mesa { padding: 12px 12px 190px; gap: 14px; }
-  .carta { padding: 0 14px 14px; border-radius: 20px; box-shadow: 5px 5px 0 var(--rosa-hq); }
+  .carta { padding: 0 14px 14px; border-radius: 20px; box-shadow: var(--shadow); }
   .carta-cab { margin: 0 -14px 10px; padding: 10px 14px; }
   .carta-dilema { font-size: 17px; padding-right: 0; }
   .carta-tuto { display: none; }
@@ -661,28 +672,29 @@ body.menu-compacto #soundBtn.off::after { content: "Som desligado"; }
 }
 @media (max-width: 640px) {
   .home-inner { justify-content: flex-start; padding: 104px 18px 90px; }
-  .home-logo { width: 74px; top: 20px; left: 18px; }
-  .home-info { transform: scale(.74); transform-origin: top right; right: 10px; top: 14px; }
-  .explosao { padding: 32px 44px 36px 36px; font-size: 30px; }
+  .home-logo { width: 84px; top: 14px; left: 16px; }
+  .home-info { right: 10px; top: 14px; }
+  .explosao { padding: 42px 58px 46px; font-size: 30px; }
   .home-cta { flex-direction: column; }
   .home-cta .btn { flex: none; }
-  .home-hero { width: 62vw; right: -8vw; bottom: 2%; opacity: .9; }
+  #home { --hs: 62vw; --hr: -8vw; --hb: 2%; }
+  .home-hero { opacity: .9; }
   .home-poderes { display: none; }
 }
 @media (max-height: 760px) and (min-width: 641px) {
   .home-inner { padding-top: 100px; padding-bottom: 70px; }
   .home-lead { font-size: 15px; }
-  .explosao { padding: 34px 54px 38px 44px; }
+  .explosao { padding: 46px 70px 50px; }
 }
-@media (prefers-reduced-motion: reduce) { .hero-tuto { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .hero-tuto { animation: none; transform: translate(-50%, -50%); } }
 
 /* telas baixas (celular em pé, ou janela pequena): a capa fica compacta para caber toda, sem rolagem */
 @media (max-width: 640px), (max-height: 860px) {
   #home { overflow: hidden; }
   .home-inner { justify-content: flex-start; padding-top: 96px; padding-bottom: 40px; }
-  .explosao { font-size: 26px; padding: 22px 34px 24px 30px; margin: 10px 0 4px; }
+  .explosao { font-size: 26px; padding: 32px 46px 34px; margin: 26px 0 8px; }
   .home-kicker { font-size: 11px; padding: 3px 11px; }
-  .home-lead { font-size: 14px; margin: 10px 0 14px; padding: 8px 12px; line-height: 1.4; }
+  .home-lead { font-size: 14px; margin: 10px 0 14px; line-height: 1.4; }
   .home-cta { gap: 8px; }
   .home-cta .btn { padding: 9px 14px 9px 9px; }
   .home-cta .btn-ico { width: 36px; height: 36px; }
@@ -693,8 +705,7 @@ body.menu-compacto #soundBtn.off::after { content: "Som desligado"; }
   .home-links .intro-av { width: 36px; height: 36px; }
   .home-links .intro-btn b { font-size: 13px; }
   .home-links .intro-btn small { font-size: 11px; }
-  .home-logo { width: 64px; top: 16px; }
-  .home-info { transform: scale(.72); transform-origin: top right; top: 10px; right: 8px; }
+  .home-info { top: 14px; right: clamp(24px, 6vw, 110px); }
 }
 
 /* botão X (fechar) das janelas sempre visível: acompanha a rolagem da janela (antes rolava junto com o conteúdo e sumia).
@@ -703,6 +714,133 @@ body.menu-compacto #soundBtn.off::after { content: "Som desligado"; }
 
 @media (max-height: 700px) {
   .home-lead { display: none; }
-  .explosao { font-size: 22px; padding: 16px 28px 18px 24px; }
+  .explosao { font-size: 22px; padding: 24px 38px 26px; }
   .home-links { margin-top: 8px; }
 }
+
+/* avatar com foto (crianças-heróis) no lugar da inicial */
+.av.foto { background: #fff center / cover no-repeat; color: transparent; font-size: 0; }
+
+/* ---------- carta no formato das cartas do "cuidar da mente" (retrato 1 : 1,6) e painel de etapa embaixo dela, sem cobrir nada ---------- */
+.mesa { padding-bottom: 32px; }
+.carta { container-type: inline-size; width: min(100%, 420px); aspect-ratio: 1 / 1.6; display: flex; flex-direction: column; padding: 0 20px 20px; border-radius: 24px; }
+.carta-cab { margin: 0 -20px 3cqw; }
+.carta-dilema { font-size: 5cqw; padding-right: 23cqw; margin: 0 0 3cqw; }
+.carta-tuto { width: 22cqw; right: 3cqw; top: 14cqw; }
+.carta .alts { flex: 1; align-content: stretch; grid-auto-rows: 1fr; gap: 2.5cqw; margin-bottom: 0; }
+.carta .alt { padding: 2cqw 3cqw; border-radius: 4cqw; gap: 3cqw; grid-template-columns: 8.5cqw minmax(0, 1fr) auto; }
+.carta .alt-l { width: 8.5cqw; height: 8.5cqw; min-width: 28px; min-height: 28px; font-size: 3.8cqw; }
+.carta .alt-t { font-size: max(10.5px, 3.7cqw); line-height: 1.35; }
+.carta.mini { container-type: normal; width: auto; aspect-ratio: auto; display: block; padding: 0 14px 14px; }
+.carta.mini .carta-cab { margin: 0 -14px 10px; }
+.carta.mini .carta-dilema { font-size: 15px; padding-right: 0; margin-bottom: 10px; }
+.carta.mini .alts { gap: 6px; grid-auto-rows: auto; }
+.carta.mini .alt { padding: 6px 8px; gap: 8px; border-radius: 12px; grid-template-columns: 28px minmax(0, 1fr) auto; }
+.carta.mini .alt-l { width: 28px; height: 28px; font-size: 13px; }
+.carta.mini .alt-t { font-size: 13px; }
+.step { position: static; transform: none; left: auto; bottom: auto; width: min(100%, 420px); justify-self: center; flex-wrap: wrap; padding: 14px 16px; z-index: auto; }
+.step-txt { flex: 1 1 180px; }
+.step-btns { display: flex; gap: 8px; flex-wrap: wrap; width: 100%; }
+.step-btns .btn { flex: 1 1 auto; padding: 12px 16px; }
+
+/* ---------- tudo na tela sem rolar: carta dimensionada pela altura da janela; marcador da liga esticado ---------- */
+.mesa-carta { --cardw: min(100%, 420px, max(260px, calc((100dvh - 330px) / 1.6))); perspective: 1400px; }
+.carta { width: var(--cardw); }
+.step { width: var(--cardw); min-width: min(100%, 300px); }
+.mesa { padding-top: 12px; }
+.cartela { grid-template-columns: repeat(20, 1fr); gap: 2px; }
+.cartela i { border-radius: 3px; }
+.poderes { grid-template-columns: repeat(6, 1fr); gap: 4px; }
+.poderes small { font-size: 9px; padding: 0 4px; }
+.liga { gap: 8px; padding: 14px; }
+/* a carta chega virada para baixo e vira, como no "cuidar da mente" */
+.carta-verso { display: none; position: absolute; inset: 0; z-index: 6; pointer-events: none; background: var(--amarelo); border-radius: inherit; place-content: center; justify-items: center; text-align: center; gap: 3cqw; color: var(--preto); }
+.carta-verso img { width: 34cqw; height: auto; }
+.carta-verso b { font-size: 6cqw; font-weight: 700; }
+.carta-verso span { font-size: 3.4cqw; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.carta.vindo { animation: cartaVem 1.1s cubic-bezier(.4, .05, .25, 1) both; }
+.carta.vindo .carta-verso { display: grid; animation: versoSome 1.1s linear both; }
+@keyframes cartaVem {
+  0% { transform: translateY(70px) scale(.88) rotateY(0); opacity: 0; }
+  15% { opacity: 1; }
+  45% { transform: translateY(24px) scale(.96) rotateY(90deg); }
+  45.01% { transform: translateY(24px) scale(.96) rotateY(-90deg); }
+  100% { transform: none; }
+}
+@keyframes versoSome { 0%, 45% { opacity: 1; visibility: visible; } 45.01%, 100% { opacity: 0; visibility: hidden; } }
+@media (prefers-reduced-motion: reduce) { .carta.vindo, .carta.vindo .carta-verso { animation: none; } .carta-verso { display: none !important; } }
+
+/* ---------- layout final da mesa: carta à esquerda (cabe inteira na janela) e, à direita, painel da etapa + avisos + liga ---------- */
+.lateral { display: grid; gap: 12px; align-content: start; min-width: 0; }
+.lateral .step { width: min(100%, 560px); justify-self: center; }
+@media (min-width: 1001px) {
+  .mesa { height: calc(100dvh - 78px); max-width: 1120px; grid-template-columns: auto minmax(300px, 360px); justify-content: center; gap: 28px; padding: 12px 24px; overflow: hidden; }
+  .mesa-carta { --cardw: min(540px, calc((100dvh - 78px - 28px) / 1.6)); }
+  .carta { width: var(--cardw); }
+  .lateral { max-height: calc(100dvh - 78px - 24px); overflow-y: auto; padding: 4px 8px 4px 4px; scrollbar-width: thin; }
+  .lateral .step { width: 100%; }
+}
+/* painel lateral compacto: etapa, aviso e liga cabem juntos */
+.lateral .step { padding: 10px 12px; gap: 8px 10px; }
+.lateral .step .avatar, .lateral .step .av { width: 36px; height: 36px; }
+.lateral .step-txt b { font-size: 14.5px; }
+.lateral .step-txt span { font-size: 12.5px; line-height: 1.35; }
+.lateral .step-dots { margin-top: 4px; }
+.lateral .step-btns { flex-wrap: nowrap; }
+.lateral .step-btns .btn { flex: 1 1 0; padding: 9px 10px; font-size: 13.5px; }
+.lateral .aviso { padding: 10px 14px; border-radius: 16px; }
+.lateral .aviso p { font-size: 12px; line-height: 1.4; margin-top: 4px; }
+.lateral .conversa { padding: 10px 14px; }
+.lateral .conversa p { font-size: 13px; }
+.lateral .liga { padding: 12px 14px; gap: 6px; }
+.lateral .meta b { font-size: 34px; }
+.lateral .jogs { grid-template-columns: 1fr 1fr; gap: 4px; }
+.lateral .jogs li { padding: 3px 8px 3px 4px; gap: 6px; min-width: 0; }
+.lateral .liga h3 { margin-top: 2px; }
+/* "clip" (e não "hidden") para a carta crescer quando o texto for maior que o formato 1 : 1,6, em vez de cortar as alternativas */
+.carta { overflow: clip; }
+/* duas colunas a partir de 760 px (janelas estreitas de notebook e tablet); só celular em pé fica em uma coluna */
+@media (min-width: 760px) and (max-width: 1000px) {
+  .mesa { height: calc(100dvh - 78px); grid-template-columns: auto minmax(280px, 340px); justify-content: center; gap: 20px; padding: 12px 16px; overflow: hidden; }
+  .mesa-carta { --cardw: min(420px, calc((100dvh - 78px - 28px) / 1.6), calc(100vw - 400px)); }
+  .carta { width: var(--cardw); }
+  .lateral { max-height: calc(100dvh - 78px - 24px); overflow-y: auto; padding: 4px 8px 4px 4px; scrollbar-width: thin; }
+  .lateral .step { width: 100%; }
+}
+/* celular em pé: o painel da etapa fica fixo embaixo, e a página reserva o espaço dele para não cobrir nada */
+@media (max-width: 759px) {
+  .mesa { padding: 10px 12px 200px; }
+  .mesa-carta { --cardw: min(100%, 420px); }
+  .lateral .step { position: fixed; left: 10px; right: 10px; bottom: max(10px, env(safe-area-inset-bottom)); width: auto; z-index: 25; box-shadow: var(--shadow-lg); }
+}
+
+/* verso da carta: arte da capa das cartas-dilema */
+.carta-verso { background: var(--capa) center / cover no-repeat, var(--rosa-hq); }
+/* aviso rápido embaixo da tela (antes ficava em cima da carta); no celular sobe para não ficar atrás do painel da etapa */
+.toast { top: auto; bottom: 24px; max-width: calc(100vw - 32px); text-align: center; transform: translate(-50%, 10px); }
+.toast.show { transform: translate(-50%, 0); }
+@media (max-width: 759px) { .toast { bottom: 150px; } }
+/* verso inteiro, sem cortar a arte (a imagem é um pouco mais larga que a carta) */
+.carta-verso { background: var(--capa) center / 100% 100% no-repeat, var(--rosa-hq); }
+/* a pontuação de cada alternativa não aparece na carta (o marcador da liga continua somando) */
+.carta:not(.mini) .alt-p { display: none; }
+
+/* trilha da liga: avatares como fichas que pulam de casa em casa */
+.trilha { list-style: none; margin: 0 0 8px; padding: 0; display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px 5px; }
+.casa { position: relative; aspect-ratio: 1 / 1.15; border-radius: 10px; background: var(--verde-fundo); box-shadow: inset 0 0 0 1.5px rgba(42, 73, 71, .18); display: grid; place-items: center; }
+.casa .n { position: absolute; left: 4px; top: 2px; font-size: 9px; font-weight: 700; color: var(--ink-2); }
+.casa img { width: 70%; aspect-ratio: 1; border-radius: 50%; filter: grayscale(1) opacity(.4); }
+.casa.on img { filter: none; }
+.casa small { font-size: 9.5px; font-weight: 700; color: var(--verde-escuro); text-transform: uppercase; letter-spacing: .04em; }
+.casa .fim { font-size: 11px; color: var(--preto); }
+.casa.chegada { background: var(--amarelo); box-shadow: inset 0 0 0 1.5px var(--preto); }
+.casa.on:not(.chegada) { background: var(--amarelo-reb); }
+.casa .fichas { position: absolute; left: 0; right: 0; bottom: -8px; display: flex; justify-content: center; z-index: 2; pointer-events: none; }
+.casa .fichas .av { width: 22px; height: 22px; font-size: 10px; margin-left: -9px; box-shadow: 0 0 0 2px var(--branco), 0 2px 4px rgba(0, 0, 0, .3); }
+.casa .fichas .av:first-child { margin-left: 0; }
+.casa .fichas .mais { margin-left: -6px; align-self: center; font-size: 10px; font-weight: 700; background: var(--preto); color: var(--branco); border-radius: 99px; padding: 1px 5px; }
+.av.ficha.pulo { animation: pulo .9s var(--ease-back); }
+@keyframes pulo { 0% { transform: translate(-46px, -22px) scale(1.3); opacity: .4; } 55% { transform: translate(-12px, -26px) scale(1.25); opacity: 1; } 100% { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .av.ficha.pulo { animation: none; } }
+/* celular deitado (baixo): logo menor, como no "cuidar da mente" */
+@media (orientation: landscape) and (max-height: 520px) { .home-logo { width: 68px; top: 8px; } }

@@ -11,6 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/mesa.css">
 </head>
 <body>
   <!-- Tela inicial -->
@@ -18,13 +19,16 @@
     <div class="raios" aria-hidden="true"></div>
     <img class="home-logo" src="assets/img/logo-preto.webp" alt="ame sua mente" width="120" height="87">
     <div class="home-inner">
-      <div class="home-kicker">Jogo #1 · Módulo 4</div>
       <h1 class="explosao"><span>Super Liga</span><span>da Empatia</span></h1>
       <p class="home-lead">Dilemas de convivência para pensar em caminhos seguros e respeitosos, escolher em segredo e desbloquear superpoderes em grupo.</p>
       <div class="home-cta">
         <button class="btn btn-primary" data-action="setup">
           <span class="btn-ico"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.6 2.7-6 6-6s6 2.4 6 6"/><circle cx="17" cy="9" r="2.6"/><path d="M15.5 14.2c3 .2 5.5 2.4 5.5 5.8"/></svg></span>
           <span><b>Jogar</b><small>A partir de 2 pessoas, no mesmo aparelho</small></span>
+        </button>
+        <button class="btn btn-light" data-action="galeria">
+          <span class="btn-ico"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="11" height="15" rx="2" transform="rotate(-8 8.5 12.5)"/><rect x="10" y="3" width="11" height="15" rx="2" transform="rotate(6 15.5 10.5)"/></svg></span>
+          <span><b>Ver os 20 dilemas</b><small>Leia as cartas</small></span>
         </button>
       </div>
       <div class="home-links">
@@ -36,18 +40,14 @@
           <span class="intro-av rules-av"><svg viewBox="0 0 24 24"><path d="M5 4.5A2.5 2.5 0 0 1 7.5 2H19v16H7.5A2.5 2.5 0 0 0 5 20.5v-16Z"/><path d="M5 20.5A2.5 2.5 0 0 0 7.5 23H19v-5"/><path d="M9 7h6M9 11h4"/></svg></span>
           <span><b>Como jogar</b><small>Regras e instruções</small></span>
         </button>
-        <button class="intro-btn" data-action="galeria">
-          <span class="intro-av rules-av"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="11" height="15" rx="2" transform="rotate(-8 8.5 12.5)"/><rect x="10" y="3" width="11" height="15" rx="2" transform="rotate(6 15.5 10.5)"/></svg></span>
-          <span><b>Ver os 20 dilemas</b><small>Com ou sem pontos</small></span>
-        </button>
       </div>
     </div>
     <div class="home-info" aria-label="informações">
       <div class="info-pill">Informações</div>
       <div class="info-body">
-        <div class="info-age"><span class="plus">+</span>11<small>anos</small></div>
-        <div class="info-age">2+<small>pessoas</small></div>
-        <div class="info-age">20<small>dilemas</small></div>
+        <div class="info-item"><b><span class="plus">+</span>11</b><small>anos</small></div>
+        <div class="info-item"><b>2+</b><small>pessoas</small></div>
+        <div class="info-item"><b>20</b><small>dilemas</small></div>
       </div>
     </div>
     <div class="home-hero" aria-hidden="true">
@@ -85,14 +85,22 @@
       </div>
     </header>
 
-    <main class="mesa">
-      <div class="mesa-carta">
-        <article class="carta" id="carta" aria-live="polite"></article>
+    <main class="mesa" id="mesa">
+      <button class="monte" id="monte" type="button" aria-label="Monte de cartas: tocar para puxar uma carta">
+        <span class="pilha"></span><b>Cartas</b><small id="monteN"></small>
+      </button>
+      <section class="tabuleiro" id="liga" aria-label="Tabuleiro da liga">
+        <div class="cab" id="ligaCab"></div>
+        <div class="grade" id="grade"></div>
+      </section>
+      <div class="lidas" id="lidas" aria-label="Cartas lidas">
+        <span class="pilha"></span><b>Lidas</b><small id="lidasN"></small>
+      </div>
+      <div class="palco" id="palco">
+        <div class="mesa-carta"><article class="carta" id="carta" aria-live="polite"></article></div>
         <div class="apoio" id="apoio"></div>
       </div>
-      <aside class="liga" id="liga" aria-label="Liga"></aside>
     </main>
-
     <div class="step" id="step" role="status" aria-live="polite"></div>
   </section>
 
@@ -188,7 +196,6 @@
           <ul>
             <li><b>Cooperativo (padrão):</b> o grupo soma os pontos de cada rodada num marcador comum e desbloqueia os superpoderes para todos. A meta é chegar a 60 pontos ou completar as cartas escolhidas. Bom para turmas, grupos novos, conversas sensíveis e atividades de convivência.</li>
             <li><b>Competitivo (opcional):</b> cada pessoa registra os próprios pontos. Pode haver empate e mais de uma pessoa vencedora. Ninguém é eliminado, e ninguém comenta escolhas pessoais como prova de caráter.</li>
-            <li><b>Sem pontuação (conversa):</b> só as cartas sem pontos; cada pessoa pode escolher, explicar, passar ou apenas ouvir. Bom para acolhimento, temas delicados ou pouco tempo.</li>
           </ul>
           <p class="note"><b>Importante:</b> a pontuação mede apenas as escolhas previstas nesta dinâmica. Não mede caráter, empatia real nem valor pessoal.</p>
         </article>

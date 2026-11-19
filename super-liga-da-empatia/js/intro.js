@@ -2,7 +2,7 @@
 // palavras aparecendo no tempo da fala e o Tuto em camadas (corpo por pose, olhos piscando, boca em 5 aberturas).
 // Enquanto não há narração (INTRO.audio = null), um relógio próprio faz o papel do áudio: o balão "fala" no ritmo
 // estimado e a boca mexe palavra a palavra. Com o áudio, a boca segue o volume da voz (INTRO.boca, 25 quadros/s).
-import { INTRO } from './intro-data.js';
+import { INTRO, distribuir } from './intro-data.js';
 
 const $ = (s) => document.querySelector(s);
 const POSES = ['aceno', 'apresenta', 'joinha'];
@@ -15,9 +15,46 @@ const guarda = {
 const mudoSalvo = () => !!guarda.get().mudo;
 
 const starts = INTRO.baloes.map((b) => b.palavras[0][1]);
-// acena no começo ("Olá! Eu sou o Tuto"), apresenta a partir do 2º balão, joinha na pergunta final
-const tApresenta = starts[1];
-const tJoinha = starts[starts.length - 1];
+// acena no começo ("Oi, pessoal!"), apresenta a partir do 2º balão, joinha na pergunta final
+let tApresenta = starts[1];
+let tJoinha = starts[starts.length - 1];
+
+/** Lê o volume da voz: mexe a boca no ritmo real e encaixa o começo de cada balão nas pausas da fala. */
+let refinado = false;
+async function refinar() {
+  if (refinado || INTRO.boca) return;
+  refinado = true;
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const buf = await ctx.decodeAudioData(await (await fetch(blobUrl || SRC + INTRO.audio)).arrayBuffer());
+    ctx.close?.();
+    const d = buf.getChannelData(0), sr = buf.sampleRate, fps = INTRO.fps, n = Math.floor(d.length / sr * fps);
+    const rms = [];
+    for (let f = 0; f < n; f++) { let s = 0; const a = Math.floor(f * sr / fps), b = Math.floor((f + 1) * sr / fps); for (let i = a; i < b; i++) s += d[i] * d[i]; rms.push(Math.sqrt(s / (b - a))); }
+    const p95 = [...rms].sort((x, y) => x - y)[Math.floor(n * 0.95)] || 1;
+    const r = rms.map((v) => v / p95);
+    INTRO.boca = r.map((v) => (v < 0.06 ? 0 : v < 0.2 ? 1 : v < 0.4 ? 2 : v < 0.65 ? 3 : 4)).join('');
+    INTRO.dur = +(d.length / sr).toFixed(2);
+    // voz de verdade: do primeiro ao último quadro com som
+    const voz = r.map((v) => v >= 0.06);
+    const ini = voz.indexOf(true) / fps, fim = (voz.lastIndexOf(true) + 1) / fps;
+    // pausas (>= 0,2 s) como candidatas a início de balão
+    const pausas = []; let st = -1;
+    for (let f = 0; f <= n; f++) { const q = f < n && !voz[f]; if (q && st < 0) st = f; if (!q && st >= 0) { if (f - st >= 5 && st / fps > ini + 0.5) pausas.push([st / fps, f / fps]); st = -1; } }
+    const base = distribuir(null, ini, fim);
+    const inicios = base.map((b, i) => {
+      if (!i) return ini;
+      const alvo = b.palavras[0][1];
+      let melhor = null;
+      for (const p of pausas) { const dist = Math.abs(p[1] - alvo); if (dist < 2.2 && (!melhor || (p[1] - p[0]) - dist * 0.25 > melhor.v)) melhor = { t: p[1], v: (p[1] - p[0]) - dist * 0.25 }; }
+      return melhor ? melhor.t : alvo;
+    });
+    INTRO.baloes = distribuir(null, ini, fim, inicios);
+    INTRO.baloes.forEach((b, i) => { starts[i] = b.palavras[0][1]; });
+    tApresenta = starts[1]; tJoinha = starts[starts.length - 1];
+    cur = -1;
+  } catch { /* sem Web Audio: fica o tempo estimado e a boca palavra a palavra */ }
+}
 
 /** Relógio que imita um <audio> (para quando ainda não há narração). */
 class Relogio {
@@ -88,7 +125,7 @@ function show(i) {
 /** Abertura da boca: pelo volume da voz (com áudio) ou palavra a palavra (sem áudio). */
 function boca(t, playing) {
   if (!playing) return 0;
-  if (temVoz()) {
+  if (temVoz() && INTRO.boca) {
     const f = Math.floor(t * INTRO.fps), b = (n) => +(INTRO.boca[n] || 0);
     return Math.max(b(f), b(f - 1) - 1, b(f - 2) - 2);
   }
@@ -142,21 +179,25 @@ function play() { ended = false; audio.play().catch(() => {}); }
 function toggle() { if (!audio) return; if (ended) seek(0); else if (audio.paused) play(); else audio.pause(); }
 function seek(i) { if (!audio) return; ended = false; audio.currentTime = Math.max(0, starts[i] - 0.15); cur = -1; play(); }
 
+let blobUrl = null, blobP = null;
+function carregarBlob() {
+  return blobP || (blobP = fetch(SRC + INTRO.audio).then((r) => r.blob()).then((b) => (blobUrl = URL.createObjectURL(b))).catch(() => null));
+}
+
 function criarAudio() {
   if (!temVoz()) { const r = new Relogio(INTRO.dur); r.addEventListener('ended', () => { ended = true; }); return r; }
   const a = new Audio(SRC + INTRO.audio);
   a.preload = 'auto';
   a.muted = mudoSalvo();
   a.addEventListener('ended', () => { ended = true; });
-  // servidor sem "Range" (ex.: preview local) não deixa pular no áudio: troca por uma cópia em memória
-  a.addEventListener('loadedmetadata', () => {
-    if (a.src.startsWith('blob:') || a.seekable.length) return;
-    fetch(SRC + INTRO.audio).then((r) => r.blob()).then((b) => {
-      const t = a.currentTime, tocando = !a.paused;
-      a.src = URL.createObjectURL(b);
-      a.addEventListener('loadedmetadata', () => { a.currentTime = t; if (tocando) a.play().catch(() => {}); }, { once: true });
-    });
-  }, { once: true });
+  // pular entre balões exige áudio "pulável": servidores sem "Range" (preview local) fazem o áudio voltar ao zero.
+  // Por isso a voz é carregada inteira em memória e tocada dali (o mesmo arquivo serve ao refinar()).
+  carregarBlob().then((url) => {
+    if (!url) return;
+    const t = a.currentTime, tocando = !a.paused && !a.ended;
+    a.src = url;
+    a.addEventListener('loadedmetadata', () => { a.currentTime = t; if (tocando) a.play().catch(() => {}); }, { once: true });
+  });
   return a;
 }
 
@@ -164,6 +205,7 @@ export function openIntro() {
   if (!built) build();
   setMute(mudoSalvo());
   if (!audio) audio = criarAudio();
+  refinar();
   ended = false; cur = -1;
   audio.currentTime = 0;
   $('#intro').classList.remove('hidden');

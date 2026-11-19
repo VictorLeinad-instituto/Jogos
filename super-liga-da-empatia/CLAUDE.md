@@ -28,3 +28,7 @@ Mesma arquitetura do Tomada de decisão (`../tomada-de-decisao`): `main.js` com 
 ## Estado atual (2026-11-16)
 - Testado no preview: capa, partida cooperativa completa (6 cartas, superpoderes, fim), competitivo (empate), sem pontuação, galeria, celular 375×812 e 1280×780.
 - Não testado em iPhone de verdade.
+
+## Visual igual ao da sala (2026-11-18)
+- Tabuleiro grande de 60 casas com peões-avatar, montes "Cartas"/"Lidas", capa com "explosão", cor #E3C5EA, alternativas sorteadas a cada carta, Tuto com narração (`assets/intro/narracao.mp3`) e Continuar/Reiniciar no fim: tudo igual ao `super-liga-da-empatia-sala`.
+- `js/main.js`, `js/data.js`, `js/intro*.js`, `js/avatares.js`, `css/style.css` e `css/mesa.css` são **iguais aos da sala**: mudou lá, copiar aqui (e vice-versa). Aqui não há sala: `G.sala` é falso, o monte é tocado na mesa e cada pessoa ganha um avatar sorteado.

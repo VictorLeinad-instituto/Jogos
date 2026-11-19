@@ -1,30 +1,28 @@
-// Apresentação do Tuto: um balão por parágrafo.
-// RASCUNHO: o documento da Super Liga não trouxe o roteiro do Tuto. Este texto foi escrito a partir das regras
-// revisadas, no mesmo formato dos outros jogos, só para a apresentação funcionar. Trocar pelo roteiro oficial
-// assim que ele chegar (e, com o áudio, preencher `audio`, `dur`, `boca` e os tempos de `palavras`, como em
-// ../../alexpawlow/jogo-tuto-jornada/js/intro-data.js).
-// AINDA SEM NARRAÇÃO: o tempo de cada palavra é estimado e a boca mexe palavra a palavra.
+// Apresentação do Tuto: um balão por parágrafo, com a narração em assets/intro/narracao.mp3.
+// O tempo de cada palavra é ESTIMADO e distribuído pela duração do áudio; ao abrir, intro.js lê o volume da voz
+// (Web Audio) para mexer a boca e ajustar o começo de cada balão às pausas reais da fala (ver `refinar`).
+// Para alinhar exato (Whisper), preencher `palavras` e `boca` como em ../../alexpawlow/jogo-tuto-jornada/js/intro-data.js.
 const BALOES = [
-  'Olá! Eu sou o Tuto e quero apresentar a você a Super Liga da Empatia!',
-  'Cada carta traz um dilema de convivência, na escola ou nas redes, com quatro caminhos possíveis. Cada pessoa escolhe o seu em segredo e, depois, todo mundo revela junto.',
-  'No modo cooperativo, o grupo soma os pontos e desbloqueia superpoderes como criatividade, amizade e paz. Os pontos mostram só as escolhas desta dinâmica: não medem caráter nem o valor de ninguém.',
-  'Ninguém precisa contar experiências pessoais, e qualquer pessoa pode passar. Em situações de violência ou risco, o caminho é buscar uma pessoa adulta de confiança.',
-  'Vamos formar a nossa liga e conversar sobre jeitos seguros e respeitosos de agir?',
+  'Oi, pessoal! Eu sou o Tuto e vim convocar vocês para uma missão especial: formar a Super Liga da Empatia!',
+  'Aqui, cada carta traz uma situação de convivência e diferentes caminhos para pensar. Primeiro, alguém lê o dilema e as alternativas. Cada pessoa escolhe a sua resposta em segredo. Depois, todo mundo revela e a equipe conversa: que consequências cada escolha pode trazer? Como podemos agir com respeito e segurança?',
+  'Desbloqueei superpoderes como criatividade, amizade, resiliência, empatia e paz até completar a Liga!',
+  'Topam entrar nessa missão? Escolham suas cartas, chamem a equipe e descubram: que superpoderes a gente pode praticar junto?',
 ];
+const DUR = 43.89;   // duração do mp3
 
-// ritmo estimado: ~2,6 palavras por segundo, com pausas na pontuação e entre balões
-function estimar() {
-  let t = 0;
-  const baloes = BALOES.map((texto) => {
-    const palavras = texto.split(/\s+/).map((w) => {
-      const p = [w, +t.toFixed(2)];
-      t += 0.2 + w.length * 0.035 + (/[.!?”]$/.test(w) ? 0.45 : /[,:;]$/.test(w) ? 0.22 : 0);
-      return p;
-    });
-    t += 0.5;
-    return { texto, palavras };
+// distribui as palavras em [ini, fim] (segundos) proporcionalmente ao tamanho de cada uma, com pausas na pontuação
+export function distribuir(baloes, ini, fim, inicios) {
+  const peso = (w) => 0.2 + w.length * 0.035 + (/[.!?”]$/.test(w) ? 0.45 : /[,:;]$/.test(w) ? 0.22 : 0);
+  const lista = BALOES.map((t) => t.split(/\s+/));
+  const total = lista.reduce((s, ws) => s + ws.reduce((a, w) => a + peso(w), 0), 0);
+  const k = (fim - ini) / (total + 0.5 * (lista.length - 1));
+  let t = ini;
+  return lista.map((ws, i) => {
+    if (inicios && inicios[i] != null) t = inicios[i];
+    const palavras = ws.map((w) => { const p = [w, +t.toFixed(2)]; t += peso(w) * k; return p; });
+    t += 0.5 * k;
+    return { texto: BALOES[i], palavras };
   });
-  return { dur: +t.toFixed(2), baloes };
 }
 
-export const INTRO = { audio: null, fps: 25, boca: '', ...estimar() };
+export const INTRO = { audio: 'narracao.mp3', fps: 25, boca: '', dur: DUR, baloes: distribuir(null, 0.2, DUR - 0.4) };

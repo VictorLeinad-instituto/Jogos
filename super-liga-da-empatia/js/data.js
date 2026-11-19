@@ -252,8 +252,7 @@ export const imgPoder = (id) => `assets/poderes/poder-${id}.webp`;
 export const MODOS = {
   coop: { nome: 'Cooperativo', curto: 'Padrão', desc: 'O grupo soma os pontos num marcador comum e desbloqueia os superpoderes para todos. A meta é chegar a 60 pontos ou completar as cartas escolhidas.' },
   comp: { nome: 'Competitivo', curto: 'Opcional', desc: 'Cada pessoa registra os próprios pontos. Pode haver empate e mais de uma pessoa vencedora. Ninguém é eliminado.' },
-  conversa: { nome: 'Sem pontuação', curto: 'Conversa', desc: 'Só as cartas sem pontos: cada pessoa pode escolher, explicar, passar ou apenas ouvir.' },
 };
 export const QTDS = [4, 6, 10, 20];
 export const MIN_JOG = 2, MAX_JOG = 10;
-export const CORES = ['#F74C00', '#C76BAC', '#E99A22', '#2A9D8F', '#FC1156', '#3A7BD5', '#6A994E', '#8E5AC8', '#D4572A', '#2A4947'];
+export const CORES = ['#EF680E', '#C76BAC', '#E99A22', '#2A9D8F', '#5B8F7B', '#3A7BD5', '#6A994E', '#8E5AC8', '#AF6CAC', '#2A4947'];

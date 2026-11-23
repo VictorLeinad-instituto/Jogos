@@ -21,8 +21,16 @@ const store = {
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* sem armazenamento */ } },
   del(k) { try { localStorage.removeItem(k); } catch { /* sem armazenamento */ } },
 };
-const prefs = Object.assign({ sound: true, names: [] }, store.get(PREFS_KEY) || {});
-const savePrefs = () => store.set(PREFS_KEY, prefs);
+const prefs = Object.assign({ sound: true }, store.get(PREFS_KEY) || {});
+// Nomes dos jogadores só durante a sessão (LGPD): somem ao fechar o navegador e não ficam no computador da escola.
+const NOMES_KEY = PREFS_KEY + '-nomes';
+prefs.names = (() => { try { return JSON.parse(sessionStorage.getItem(NOMES_KEY)) || []; } catch { return []; } })();
+const savePrefs = () => {
+  const { names, ...resto } = prefs;
+  store.set(PREFS_KEY, resto);
+  try { sessionStorage.setItem(NOMES_KEY, JSON.stringify(names || [])); } catch { /* sem armazenamento */ }
+};
+savePrefs(); // regrava sem os nomes que versões antigas guardavam
 
 let toastT;
 function toast(msg) {

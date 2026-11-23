@@ -706,3 +706,6 @@ body.menu-compacto #soundBtn.off::after { content: "Som desligado"; }
   .explosao { font-size: 22px; padding: 16px 28px 18px 24px; }
   .home-links { margin-top: 8px; }
 }
+
+/* aviso de privacidade (LGPD) junto ao campo de nome */
+.aviso-nomes { display: block; margin: 8px 0 0; font-size: .8125rem; line-height: 1.45; font-weight: 400; text-align: inherit; }

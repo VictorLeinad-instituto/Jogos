@@ -15,8 +15,8 @@ const pts = (n) => `${n} ${n === 1 ? 'ponto' : 'pontos'}`;
 
 const PREFS_KEY = 'asm-liga-prefs';
 const store = {
-  get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
-  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* sem armazenamento */ } },
+  get(k) { try { return JSON.parse(sessionStorage.getItem(k)); } catch { return null; } },
+  set(k, v) { try { sessionStorage.setItem(k, JSON.stringify(v)); } catch { /* sem armazenamento */ } },
 };
 const prefs = Object.assign({ sound: true }, store.get(PREFS_KEY) || {});
 // Nomes dos jogadores só durante a sessão (LGPD): somem ao fechar o navegador e não ficam no computador da escola.

@@ -17,8 +17,8 @@ const um = (s) => s.replace(/\n/g, ' ');   // rótulo de roleta em uma linha
 const SAVE_KEY = 'asm-decisao-v2';
 const PREFS_KEY = 'asm-decisao-prefs';
 const store = {
-  get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
-  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* sem armazenamento */ } },
+  get(k) { try { return JSON.parse(sessionStorage.getItem(k)); } catch { return null; } },
+  set(k, v) { try { sessionStorage.setItem(k, JSON.stringify(v)); } catch { /* sem armazenamento */ } },
   del(k) { try { localStorage.removeItem(k); } catch { /* sem armazenamento */ } },
 };
 const prefs = Object.assign({ sound: true }, store.get(PREFS_KEY) || {});

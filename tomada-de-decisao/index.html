@@ -3,13 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self'; frame-src 'none'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="referrer" content="same-origin">
+  <script src="js/limpar-armazenamento.js"></script>
   <title>Entre Caminhos: Decisões em Perspectiva · ame sua mente</title>
   <meta name="description" content="Jogo #1 do Módulo 5 do ame sua mente na escola: leia uma situação, explore diferentes caminhos e use as roletas para ampliar sua reflexão sobre tomada de decisão.">
   <meta name="theme-color" content="#F89903">
   <link rel="icon" href="assets/img/logo-preto.webp">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/fontes.css">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -152,6 +153,7 @@
       <div class="field">
         <span>Nomes</span>
         <div class="names-list" id="namesList"></div>
+        <small class="aviso-nomes">Os nomes ficam só neste aparelho e são apagados quando o navegador é fechado.</small>
       </div>
       <div class="field">
         <span>Voltas (vezes que cada pessoa responde)</span>
@@ -265,53 +267,7 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <canvas id="confetti" aria-hidden="true"></canvas>
 
-  <script>
-  /* celular em pé: os ícones da barra viram um menu (3 barras) com o nome de cada ação (como no Tuto e a jornada) */
-  (function () {
-    var tb = document.getElementById("topbar"), m = document.getElementById("topActions");
-    var b = document.getElementById("menuBtn");
-    if (!b || !m) return;
-    var ultimo = 0;
-    function fechar() { document.body.classList.remove("menu-aberto"); if (b) b.setAttribute("aria-expanded", "false"); }
-    function alternar() { var a = document.body.classList.toggle("menu-aberto"); b.setAttribute("aria-expanded", String(a)); }
-    // toque: age já no soltar do dedo (pointerup) e ignora o click que vem logo depois; mouse e teclado usam o click
-    function ligar() {
-      b.addEventListener("pointerup", function (e) { if (e.pointerType === "mouse") return; ultimo = Date.now(); e.stopPropagation(); alternar(); });
-      b.addEventListener("click", function (e) { e.stopPropagation(); if (Date.now() - ultimo < 700) return; alternar(); });
-    }
-    ligar();
-    document.addEventListener("click", function (e) {
-      if (b.contains(e.target)) return;
-      if (!m.contains(e.target)) fechar(); else if (e.target.closest(".icon-btn")) setTimeout(fechar, 0);
-    });
-    // Safari do iPhone: depois de girar, a área de toque pode ficar no lugar antigo. Recria o botão e renova a barra.
-    function renovar() {
-      var aberto = document.body.classList.contains("menu-aberto");
-      var novo = b.cloneNode(true);
-      b.parentNode.replaceChild(novo, b);
-      b = novo; ligar();
-      b.setAttribute("aria-expanded", String(aberto));
-      if (tb) { tb.style.transform = "translateZ(0)"; void tb.offsetHeight; setTimeout(function () { tb.style.transform = ""; }, 60); }
-    }
-    var larg = window.innerWidth;
-    function compacto() {
-      var c = window.innerWidth <= 640 && window.innerHeight > window.innerWidth;
-      document.body.classList.toggle("menu-compacto", c);
-      if (!c) fechar();
-    }
-    // só fecha se a LARGURA mudar (girar o aparelho): a barra do Safari encolhe/cresce ao tocar e dispara resize só de altura
-    function girou() {
-      var mudou = window.innerWidth !== larg;
-      if (mudou) { larg = window.innerWidth; fechar(); }
-      compacto();
-      if (mudou) renovar();
-    }
-    compacto();
-    window.addEventListener("resize", girou);
-    window.addEventListener("orientationchange", function () { setTimeout(girou, 120); setTimeout(girou, 600); setTimeout(renovar, 700); });
-    if (window.matchMedia) { var mq = window.matchMedia("(orientation: portrait)"); (mq.addEventListener ? mq.addEventListener("change", function () { setTimeout(girou, 100); }) : mq.addListener(function () { setTimeout(girou, 100); })); }
-  })();
-  </script>
+  <script src="js/menu-celular.js"></script>
   <script type="module" src="js/main.js"></script>
 </body>
 </html>

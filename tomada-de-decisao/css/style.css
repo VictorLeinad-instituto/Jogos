@@ -832,3 +832,6 @@ body.com-modal #topbarTitle { visibility: hidden; }
 .info-item b { display: block; font-size: 28px; font-weight: 700; line-height: 1; color: var(--verde-escuro); }
 .info-item .plus { color: var(--amarelo); font-size: 22px; vertical-align: top; }
 .info-item small { font-size: 11px; font-weight: 700; color: var(--verde-escuro); }
+
+/* aviso de privacidade (LGPD) junto ao campo de nome */
+.aviso-nomes { display: block; margin: 8px 0 0; font-size: .8125rem; line-height: 1.45; font-weight: 400; text-align: inherit; }

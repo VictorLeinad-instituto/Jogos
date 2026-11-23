@@ -1,0 +1,52 @@
+/* Poppins servida pelo próprio jogo (antes vinha do Google Fonts).
+   Fonte: pacote @fontsource/poppins 5.1.0, subconjunto latino (cobre o português). Licença: SIL OFL 1.1
+   (assets/fontes/poppins/OFL.txt). Gerado por ferramentas/seguranca/aplicar-protecoes.js. */
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../assets/fontes/poppins/poppins-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('../assets/fontes/poppins/poppins-latin-500-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('../assets/fontes/poppins/poppins-latin-600-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../assets/fontes/poppins/poppins-latin-700-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url('../assets/fontes/poppins/poppins-latin-800-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Poppins';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../assets/fontes/poppins/poppins-latin-400-italic.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Poppins';
+  font-style: italic;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../assets/fontes/poppins/poppins-latin-700-italic.woff2') format('woff2');
+}

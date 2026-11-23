@@ -9,8 +9,8 @@ const POSES = ['aceno', 'apresenta', 'joinha'];
 const SRC = 'assets/intro/';
 const CHAVE = 'asm-decisao-intro';
 const guarda = {
-  get() { try { return JSON.parse(localStorage.getItem(CHAVE)) || {}; } catch { return {}; } },
-  set(o) { try { localStorage.setItem(CHAVE, JSON.stringify(o)); } catch { /* sem armazenamento */ } },
+  get() { try { return JSON.parse(sessionStorage.getItem(CHAVE)) || {}; } catch { return {}; } },
+  set(o) { try { sessionStorage.setItem(CHAVE, JSON.stringify(o)); } catch { /* sem armazenamento */ } },
 };
 const mudoSalvo = () => !!guarda.get().mudo;
 
